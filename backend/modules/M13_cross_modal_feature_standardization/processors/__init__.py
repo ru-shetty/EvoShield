@@ -1,0 +1,3 @@
+# M13_cross_modal_feature_standardization/processors/__init__.py
+
+from .processor import CrossModalFeatureProcessor

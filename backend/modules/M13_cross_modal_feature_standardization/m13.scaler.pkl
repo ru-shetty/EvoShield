@@ -1,0 +1,21 @@
+from M13_cross_modal_feature_standardization.processors.processor import (
+    CrossModalFeatureProcessor
+)
+
+import numpy as np
+
+
+processor = CrossModalFeatureProcessor()
+
+
+training_data = np.random.rand(
+    100,
+    27
+)
+
+
+processor.fit_scaler(
+    training_data
+)
+
+print("M13 scaler created successfully.")
