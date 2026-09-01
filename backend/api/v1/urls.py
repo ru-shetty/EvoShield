@@ -24,4 +24,10 @@ urlpatterns = [
             "backend.modules.M11_security_monitoring_visualization.api.urls"
         ),
     ),
+    path(
+    "",
+    include(
+        "backend.modules.M12_security_data_audit_management.api.urls"
+    ),
+),
 ]
