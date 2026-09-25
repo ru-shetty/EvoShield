@@ -5,7 +5,7 @@ import sys
 def main():
     os.environ.setdefault(
         "DJANGO_SETTINGS_MODULE",
-        "test_settings"
+        "backend.config.settings.development"
     )
 
     try:

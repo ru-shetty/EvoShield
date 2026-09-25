@@ -1,18 +1,23 @@
+# Virtual environment
+.venv/
+
 # Python
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-
-# Virtual Environment
-venv/
 
 # Environment variables
 .env
 
-# VS Code
-.vscode/
+# Django database
+*.sqlite3
 
-# OS files
-.DS_Store
-Thumbs.db
+# Datasets
+backend/modules/*/data/
+
+# Trained ML model artifacts
+backend/modules/*/algorithms/artifacts/
+
+# IDE
+.vscode/
+.idea/
