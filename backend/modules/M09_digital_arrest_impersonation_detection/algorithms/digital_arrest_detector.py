@@ -18,6 +18,16 @@ INDICATOR_PATTERNS = {
         "court officer",
         "supreme court",
         "central bureau of investigation",
+        "police officer",
+        "police department",
+        "police station",
+        "police ki taraf se",
+        "cyber cell",
+        "cyber police",
+        "police adhikari",
+        "पुलिस",
+        "साइबर क्राइम",
+        "साइबर पुलिस",
     ],
 
     "threat_language": [
@@ -31,6 +41,14 @@ INDICATOR_PATTERNS = {
         "warrant issued",
         "jail",
         "imprisonment",
+        "aapko giraftar kiya jayega",
+        "aap giraftar hain",
+        "giraftar kar lenge",
+        "giraftari warrant",
+        "jail bhej denge",
+        "गिरफ्तार किया जाएगा",
+        "गिरफ्तारी वारंट",
+        "जेल भेज देंगे",
     ],
 
     "urgency": [
@@ -42,6 +60,12 @@ INDICATOR_PATTERNS = {
         "do it now",
         "act immediately",
         "do not disconnect",
+        "abhi turant",
+        "phone mat kaato",
+        "call mat kaato",
+        "फोन मत काटो",
+        "कॉल मत काटो",
+        "अभी तुरंत",
     ],
 
     "financial_request": [
@@ -54,6 +78,12 @@ INDICATOR_PATTERNS = {
         "account number",
         "pay the fine",
         "pay the penalty",
+        "paise bhejo",
+        "paisa transfer karo",
+        "fine jama karo",
+        "जुर्माना भरो",
+        "पैसे भेजो",
+        "पैसा ट्रांसफर करो",
     ],
 
     "otp_pin_aadhaar_pan_request": [
@@ -67,6 +97,11 @@ INDICATOR_PATTERNS = {
         "bank details",
         "debit card",
         "credit card",
+        "otp batao",
+        "otp bataye",
+        "aadhaar number batao",
+        "ओटीपी बताओ",
+        "आधार नंबर बताओ",
     ],
 
     "fake_document_indicators": [
@@ -78,6 +113,10 @@ INDICATOR_PATTERNS = {
         "government notice",
         "official document",
         "verification document",
+        "nakli warrant",
+        "fake police notice",
+        "नकली वारंट",
+        "फर्जी वारंट",
     ],
 
     "continuous_call_pressure": [
@@ -88,6 +127,10 @@ INDICATOR_PATTERNS = {
         "do not contact anyone",
         "stay connected",
         "keep your camera on",
+        "kisi ko mat batana",
+        "video call par raho",
+        "किसी को मत बताना",
+        "वीडियो कॉल पर रहो",
     ],
 }
 

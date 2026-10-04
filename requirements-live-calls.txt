@@ -1,0 +1,4 @@
+# Optional Windows live-call monitoring dependencies.
+soundcard>=0.4.3
+faster-whisper>=1.1.0
+winotify>=1.1.0

@@ -21,3 +21,9 @@ backend/modules/*/algorithms/artifacts/
 # IDE
 .vscode/
 .idea/
+
+# Android Studio build outputs
+android/.gradle/
+android/local.properties
+android/**/build/
+android/**/*.apk
