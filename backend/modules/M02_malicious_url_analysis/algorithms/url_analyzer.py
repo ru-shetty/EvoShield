@@ -4,16 +4,19 @@ Malicious URL analysis algorithm for M02.
 Uses the trained character-level TF-IDF URL classifier.
 """
 
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
 import joblib
 
 from ..config import (
+    FEATURE_WEIGHTS,
     MALICIOUS_URL_SCORE_THRESHOLD,
     RISK_HIGH,
     RISK_LOW,
     RISK_MEDIUM,
+    SUSPICIOUS_URL_SCORE_THRESHOLD,
     STATUS_MALICIOUS,
     STATUS_SAFE,
     STATUS_SUSPICIOUS,
@@ -22,6 +25,24 @@ from ..config import (
     SUSPICIOUS_SCHEMES,
     SUSPICIOUS_URL_LENGTH,
 )
+
+
+# These are common brands attackers imitate in URL hosts. Keep this list
+# conservative and allow known first-party domains to avoid flagging their
+# normal subdomains. This is a heuristic, not a live reputation service.
+_BRAND_DOMAINS = {
+    "amazon": ("amazon.com", "amazon.in", "amazon.co.uk", "amazon.de"),
+    "apple": ("apple.com", "icloud.com"),
+    "facebook": ("facebook.com", "fb.com"),
+    "google": ("google.com", "google.co.in", "google.co.uk", "google.ca"),
+    "instagram": ("instagram.com",),
+    "microsoft": ("microsoft.com", "microsoftonline.com", "live.com", "office.com", "outlook.com"),
+    "netflix": ("netflix.com",),
+    "paypal": ("paypal.com",),
+    "whatsapp": ("whatsapp.com",),
+    "yahoo": ("yahoo.com", "yahoo.co.in", "yahoo.co.uk"),
+}
+_COMMON_HOST_CONFUSABLES = str.maketrans({"0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "7": "t", "8": "b"})
 
 
 class MaliciousURLAnalyzer:
@@ -40,15 +61,12 @@ class MaliciousURLAnalyzer:
             / "url_model.joblib"
         )
 
-        if not model_path.exists():
-            raise FileNotFoundError(
-                f"Trained URL model not found at: {model_path}"
-            )
-
-        saved_model = joblib.load(model_path)
-
-        self.model = saved_model["model"]
-        self.vectorizer = saved_model["vectorizer"]
+        self.model = None
+        self.vectorizer = None
+        if model_path.exists():
+            saved_model = joblib.load(model_path)
+            self.model = saved_model["model"]
+            self.vectorizer = saved_model["vectorizer"]
 
     # ----------------------------------------------------------------
     # Main analysis
@@ -77,30 +95,7 @@ class MaliciousURLAnalyzer:
 
         parsed_url = self._safe_parse_url(url)
 
-        # ------------------------------------------------------------
-        # Create TF-IDF representation
-        # ------------------------------------------------------------
-
         cleaned_url = url.lower()
-
-        vectorized_url = self.vectorizer.transform(
-            [cleaned_url]
-        )
-
-        # ------------------------------------------------------------
-        # Predict malicious probability
-        # ------------------------------------------------------------
-
-        probability = float(
-            self.model.predict_proba(
-                vectorized_url
-            )[0][1]
-        )
-
-        score = round(
-            probability,
-            4,
-        )
 
         # ------------------------------------------------------------
         # Generate human-readable indicators
@@ -109,7 +104,7 @@ class MaliciousURLAnalyzer:
         indicators = []
 
         if self._check_https(parsed_url):
-            indicators.append("https")
+            indicators.append("non_https")
 
         if self._check_ip_address(parsed_url):
             indicators.append("ip_address")
@@ -129,6 +124,55 @@ class MaliciousURLAnalyzer:
         if self._check_scheme(parsed_url):
             indicators.append("suspicious_scheme")
 
+        hostname = (parsed_url.hostname or "").lower().rstrip(".")
+        host_keyword_count = self._keyword_count(hostname)
+        keyword_count = self._keyword_count(url)
+        path_keyword_count = self._keyword_count(
+            parsed_url.path + "?" + parsed_url.query
+        )
+        impersonated_brand = self._impersonated_brand(hostname)
+        trusted_brand_host = self._is_trusted_brand_host(hostname)
+        has_userinfo = parsed_url.username is not None or parsed_url.password is not None
+        has_punycode = any(label.startswith("xn--") for label in hostname.split("."))
+
+        if host_keyword_count:
+            indicators.append("suspicious_keyword_in_host")
+        if impersonated_brand:
+            indicators.append("brand_lookalike")
+        if has_userinfo:
+            indicators.append("url_userinfo")
+        if has_punycode:
+            indicators.append("punycode_host")
+
+        if self.model is not None and self.vectorizer is not None:
+            vectorized_url = self.vectorizer.transform([cleaned_url])
+            model_score = float(self.model.predict_proba(vectorized_url)[0][1])
+            score = max(
+                model_score,
+                self._rule_score(
+                    indicators,
+                    keyword_count=keyword_count,
+                    host_keyword_count=host_keyword_count,
+                    path_keyword_count=path_keyword_count,
+                    trusted_brand_host=trusted_brand_host,
+                ),
+            )
+            analysis_mode = "trained_model"
+        else:
+            # Keep first-run installs usable without treating this heuristic
+            # score as a trained probability estimate. Explicit rules give
+            # combinations of weak phishing signals a meaningful risk floor.
+            score = self._rule_score(
+                indicators,
+                keyword_count=keyword_count,
+                host_keyword_count=host_keyword_count,
+                path_keyword_count=path_keyword_count,
+                trusted_brand_host=trusted_brand_host,
+            )
+            analysis_mode = "heuristic_fallback"
+
+        score = round(min(score, 1.0), 4)
+
         # ------------------------------------------------------------
         # Determine risk
         # ------------------------------------------------------------
@@ -138,7 +182,7 @@ class MaliciousURLAnalyzer:
             status = STATUS_MALICIOUS
             risk = RISK_HIGH
 
-        elif score >= 0.50:
+        elif score >= SUSPICIOUS_URL_SCORE_THRESHOLD:
 
             status = STATUS_SUSPICIOUS
             risk = RISK_MEDIUM
@@ -153,6 +197,7 @@ class MaliciousURLAnalyzer:
         # ------------------------------------------------------------
 
         features = {
+            "analysis_mode": analysis_mode,
             "url_length": len(url),
             "has_https": int(
                 parsed_url.scheme.lower() == "https"
@@ -169,6 +214,13 @@ class MaliciousURLAnalyzer:
             "has_suspicious_scheme": int(
                 self._check_scheme(parsed_url)
             ),
+            "suspicious_keyword_count": keyword_count,
+            "host_keyword_count": host_keyword_count,
+            "has_brand_lookalike": int(bool(impersonated_brand)),
+            "brand_lookalike": impersonated_brand or "",
+            "is_known_first_party_brand_host": int(trusted_brand_host),
+            "has_url_userinfo": int(has_userinfo),
+            "has_punycode_host": int(has_punycode),
             "special_character_count": (
                 self._count_special_characters(url)
             ),
@@ -190,7 +242,7 @@ class MaliciousURLAnalyzer:
     @staticmethod
     def _safe_parse_url(url: str):
 
-        if "://" not in url:
+        if "://" not in url and not re.match(r"^[a-z][a-z0-9+.-]*:", url, flags=re.IGNORECASE):
             url = "http://" + url
 
         try:
@@ -262,6 +314,79 @@ class MaliciousURLAnalyzer:
             keyword.lower() in url_lower
             for keyword in SUSPICIOUS_KEYWORDS
         )
+
+    @staticmethod
+    def _keyword_count(value: str) -> int:
+        value_lower = value.lower()
+        return sum(keyword.lower() in value_lower for keyword in SUSPICIOUS_KEYWORDS)
+
+    @staticmethod
+    def _impersonated_brand(hostname: str) -> str | None:
+        """Return a known brand whose name appears in a non-first-party host."""
+        if not hostname:
+            return None
+
+        normalized = hostname.translate(_COMMON_HOST_CONFUSABLES)
+        compact_host = re.sub(r"[^a-z0-9]", "", normalized)
+        for brand, official_domains in _BRAND_DOMAINS.items():
+            if brand not in compact_host:
+                continue
+            if any(
+                hostname == domain or hostname.endswith("." + domain)
+                for domain in official_domains
+            ):
+                continue
+            return brand
+        return None
+
+    @staticmethod
+    def _is_trusted_brand_host(hostname: str) -> bool:
+        return any(
+            hostname == domain or hostname.endswith("." + domain)
+            for official_domains in _BRAND_DOMAINS.values()
+            for domain in official_domains
+        )
+
+    @staticmethod
+    def _rule_score(
+        indicators: list[str],
+        *,
+        keyword_count: int,
+        host_keyword_count: int,
+        path_keyword_count: int,
+        trusted_brand_host: bool,
+    ) -> float:
+        score = sum(
+            FEATURE_WEIGHTS.get(
+                "https" if indicator == "non_https" else indicator,
+                0.0,
+            )
+            for indicator in indicators
+        )
+
+        if "suspicious_scheme" in indicators:
+            score = max(score, 0.95)
+        if "brand_lookalike" in indicators:
+            score = max(score, 0.85)
+        if "url_userinfo" in indicators:
+            score = max(score, 0.65)
+        if "punycode_host" in indicators:
+            score = max(score, 0.55)
+        if "suspicious_extension" in indicators:
+            score = max(score, 0.60)
+        effective_keyword_count = path_keyword_count if trusted_brand_host else keyword_count
+        effective_host_keyword_count = 0 if trusted_brand_host else host_keyword_count
+
+        if "ip_address" in indicators and effective_keyword_count:
+            score = max(score, 0.75)
+        if effective_host_keyword_count:
+            score = max(score, 0.55 if effective_host_keyword_count == 1 else 0.70)
+        if effective_keyword_count >= 2:
+            score = max(score, 0.50 if effective_keyword_count == 2 else 0.65)
+        if len(indicators) >= 3:
+            score = max(score, 0.50)
+
+        return score
 
     # ----------------------------------------------------------------
     # Special characters

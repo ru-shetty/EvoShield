@@ -53,7 +53,16 @@ Keep the dashboard server running, open a second PowerShell window in the projec
 python scripts/evoshield_agent.py --watch "$env:USERPROFILE\Downloads" --watch "$env:USERPROFILE\Desktop"
 ```
 
-The agent checks selected folders for newly added or changed executable and script files. It reports static results to the local dashboard. Remove folders from the command to stop monitoring them. The watcher does not monitor browser traffic, memory, system processes, or the whole device.
+The agent checks selected folders for newly added or changed files (up to 20 MB) and reports static results to the local dashboard after a file remains unchanged across two polling rounds. Files are not opened or executed. Remove folders from the command to stop monitoring them. The watcher does not monitor browser traffic, messages, memory, system processes, or the whole device.
+
+## Automatic browser link checks (Chrome or Edge)
+
+1. Start EvoShield with `scripts\start_evoshield.ps1` and confirm `http://127.0.0.1:8000` opens.
+2. In Chrome, open `chrome://extensions`; in Edge, open `edge://extensions`.
+3. Turn on **Developer mode**, select **Load unpacked**, and choose the repository's `browser-extension` folder.
+4. Visit a normal HTTP or HTTPS page. After it finishes loading, the result appears in the dashboard's **All checked items** list with source **browser-extension**.
+
+The extension checks main-frame page navigations. It removes query strings and fragments before submitting a URL because they can contain session tokens or personal data. The URL path and hostname are still sent to the loopback-only EvoShield service. Keep the local service running; if it is stopped, those page checks cannot be recorded. This extension does not read page text or WhatsApp Web messages.
 
 ## Live-call digital-arrest monitoring
 
@@ -77,14 +86,16 @@ This captures audio from the default Windows playback device, so it can hear cal
 
 ### Android: WhatsApp calls
 
-Open the `android` folder in Android Studio and follow [android/README.md](android/README.md). The user must start monitoring for each session and grant microphone permission when Android asks. Recognition is on-device and no audio or transcript is sent to the server. Android restricts access to other apps' voice-call audio, so EvoShield listens through the phone microphone; WhatsApp may hold the microphone and speakerphone may be required. This is best-effort and will not work reliably with every phone or headset.
+Open the `android` folder in Android Studio and follow [android/README.md](android/README.md). The user must start monitoring for each session and grant microphone permission when Android asks. Recognition is on-device and no audio or transcript is sent to the server. Android restricts access to other apps' voice-call audio, so EvoShield listens through the phone microphone; WhatsApp may hold the microphone and speakerphone may be required. The Android screen shows locally saved call-alert summaries only; it does not ingest files, browser URLs, SMS, or notifications. This is best-effort and will not work reliably with every phone or headset.
 
 Both call monitors use the digital-arrest rule detector, which includes common English and Hindi phrases. Recognition quality depends on the speech model and language. They provide warning indicators, not guaranteed scam detection, and do not record, block, or end calls. Stop monitoring when the call ends.
 
 ## API
 
 - `POST /api/v1/scan/` accepts JSON with `type` (`text`, `url`, or `file`) and `content`; file scans use `content_base64` and `subject` for the filename.
-- `GET /api/v1/scans/` returns the latest 100 scan records and the total count.
+- `GET /api/v1/scans/?limit=25&offset=0` returns a page of scan records, total count, and aggregate counts. `limit` is capped at 100.
+
+URL scans use the trained TF-IDF classifier when its model artifact is installed. On a fresh checkout without that artifact, they use a transparent indicator-based fallback; the result reports `analysis_mode` in its URL feature details. The fallback is a heuristic score, not a calibrated probability.
 
 ## Prototype boundaries
 

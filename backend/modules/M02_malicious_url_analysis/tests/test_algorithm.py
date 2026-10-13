@@ -50,6 +50,31 @@ class TestMaliciousURLAnalyzer(unittest.TestCase):
             result["indicators"],
         )
 
+    def test_brand_lookalike_host_is_high_risk(self):
+        result = self.analyzer.analyze(
+            "https://micros0ft-login.example.invalid/account/verify"
+        )
+
+        self.assertEqual(result["risk_level"], "HIGH")
+        self.assertIn("brand_lookalike", result["indicators"])
+        self.assertEqual(result["features"]["brand_lookalike"], "microsoft")
+
+    def test_known_brand_login_subdomain_is_not_flagged_by_keyword_alone(self):
+        result = self.analyzer.analyze(
+            "https://accounts.google.com/signin"
+        )
+
+        self.assertEqual(result["risk_level"], "LOW")
+        self.assertEqual(result["features"]["is_known_first_party_brand_host"], 1)
+
+    def test_multiple_phishing_terms_raise_generic_fake_host(self):
+        result = self.analyzer.analyze(
+            "https://secure-login.example.invalid/account/verify"
+        )
+
+        self.assertEqual(result["risk_level"], "MEDIUM")
+        self.assertGreaterEqual(result["score"], 0.50)
+
     def test_suspicious_extension(self):
         """Executable/script extensions should be detected."""
 

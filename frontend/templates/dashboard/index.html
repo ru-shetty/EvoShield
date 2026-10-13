@@ -1,9 +1,209 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EvoShield Security</title>
-<style>
-:root{color-scheme:dark;--bg:#0a1020;--panel:#111b30;--line:#263752;--muted:#9aaac2;--cyan:#60d5cf;--white:#f3f7ff;--red:#ff777f;--amber:#f6c66c}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -20%,#183955 0,transparent 50%),var(--bg);font:15px/1.5 Segoe UI,Arial,sans-serif;color:var(--white)}header{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 max(calc((100vw - 1160px)/2),24px)}.brand{font-weight:750;font-size:20px}.brand i{color:var(--cyan);font-style:normal}.state,.sub{color:var(--muted)}.state{font-size:13px}.state b{display:inline-block;background:#42d69a;width:8px;height:8px;border-radius:100%;margin-right:9px}main{max-width:1160px;margin:40px auto;padding:0 24px}.heading{margin-bottom:28px}.eyebrow{color:var(--cyan);text-transform:uppercase;letter-spacing:2px;font-size:11px;font-weight:700}h1{font-size:34px;margin:6px 0}h2{font-size:16px;margin:0 0 18px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.card{background:linear-gradient(145deg,#142139,#10192a);border:1px solid var(--line);border-radius:16px;padding:23px;box-shadow:0 14px 38px #050a14aa}.tabs{display:flex;gap:8px;margin-bottom:14px}.tab{border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 14px;border-radius:9px;cursor:pointer}.tab.active{background:#193646;border-color:#2b827f;color:var(--cyan)}textarea,input{width:100%;border:1px solid var(--line);border-radius:10px;background:#0b1424;color:var(--white);padding:13px;font:inherit}textarea{height:158px;resize:vertical}.row{margin-top:12px}.btn{border:0;background:var(--cyan);color:#072126;padding:11px 18px;border-radius:9px;font-weight:750;cursor:pointer}.btn:disabled{opacity:.6}.hint,footer{color:var(--muted);font-size:12px;margin-top:12px}.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{border:1px solid var(--line);border-radius:12px;padding:16px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:26px;margin-top:5px}.feed{margin-top:18px}.feedhead{display:flex;justify-content:space-between}.feedhead h2{margin:0}.refresh{background:none;color:var(--cyan);border:0;cursor:pointer}.scanrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding:13px 2px}.scanrow small{display:block;color:var(--muted);font-size:12px}.pill{font-size:11px;font-weight:750;padding:5px 9px;border-radius:20px;background:#203448;color:var(--cyan)}.pill.HIGH{background:#48232c;color:var(--red)}.pill.MEDIUM,.pill.REVIEW{background:#493b22;color:var(--amber)}.result{display:none;margin-top:15px;border:1px solid var(--line);border-radius:12px;padding:15px}.result pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#bbcada;font-size:12px}.empty{color:var(--muted);padding:20px 0}@media(max-width:760px){main{margin-top:25px}.grid{grid-template-columns:1fr}h1{font-size:28px}}
-</style></head><body><header><div class="brand"><i>◈</i> EvoShield</div><div class="state"><b></b>Protection service ready</div></header><main><div class="heading"><div class="eyebrow">Personal security console</div><h1>Threat monitoring</h1><div class="sub">Check suspicious messages, links, and files. Review every result below.</div></div><div class="grid"><section class="card"><h2>Run a security check</h2><div class="tabs"><button class="tab active" data-kind="text">Message</button><button class="tab" data-kind="url">Website link</button><button class="tab" data-kind="file">File</button></div><div id="textInput"><textarea id="content" placeholder="Paste a suspicious SMS, email, or call transcript…"></textarea></div><div id="urlInput" hidden><input id="url" placeholder="https://example.com"></div><div id="fileInput" hidden><input id="file" type="file"></div><div class="row"><button id="scan" class="btn">Analyze safely</button></div><div class="hint">Files are inspected statically and never executed. Scan results are saved in local history.</div><div id="result" class="result"></div></section><aside class="card"><h2>Activity overview</h2><div class="statgrid"><div class="stat"><small>Total checks</small><strong id="total">—</strong></div><div class="stat"><small>High risk</small><strong id="high">—</strong></div><div class="stat"><small>Message checks</small><strong id="messages">—</strong></div><div class="stat"><small>Service</small><strong style="font-size:18px;color:var(--cyan)">Active</strong></div></div><footer>Background file monitoring is opt-in and limited to folders configured in the local agent.</footer></aside></div><section class="card feed"><div class="feedhead"><h2>Recent scan results</h2><button class="refresh" id="refresh">Refresh</button></div><div id="items"><div class="empty">Loading scan history…</div></div></section><footer>Risk indicators are not a guarantee that a file or message is safe. Keep your operating system protection enabled.</footer></main>
-<script>
-let kind='text';document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');kind=t.dataset.kind;for(const k of ['text','url','file'])document.querySelector('#'+k+'Input').hidden=kind!==k});const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function refresh(){try{const r=await fetch('/api/v1/scans/'),d=await r.json();document.querySelector('#total').textContent=d.total;document.querySelector('#high').textContent=d.scans.filter(s=>s.verdict==='HIGH').length;document.querySelector('#messages').textContent=d.scans.filter(s=>s.type==='text').length;document.querySelector('#items').innerHTML=d.scans.length?d.scans.map(s=>`<div class="scanrow"><div>${esc(s.subject)}<small>${esc(s.type)} · ${new Date(s.created_at).toLocaleString()} · ${(s.risk_score*100).toFixed(0)}% score</small></div><span class="pill ${esc(s.verdict)}">${esc(s.verdict)}</span></div>`).join(''):'<div class="empty">No checks yet. Analyze a message or link to get started.</div>'}catch{document.querySelector('#items').innerHTML='<div class="empty">Cannot reach the EvoShield service. Start it and refresh.</div>'}}document.querySelector('#refresh').onclick=refresh;setInterval(refresh,10000);
-document.querySelector('#scan').onclick=async()=>{let p={type:kind,source:'web'};if(kind==='text')p.content=document.querySelector('#content').value;if(kind==='url')p.content=document.querySelector('#url').value;if(kind==='file'){const f=document.querySelector('#file').files[0];if(!f)return alert('Choose a file first');if(f.size>20*1024*1024)return alert('Maximum file size is 20 MB');p.subject=f.name;p.content_base64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result.split(',')[1]);r.onerror=reject;r.readAsDataURL(f)})}const b=document.querySelector('#scan'),o=document.querySelector('#result');b.disabled=true;b.textContent='Analyzing…';try{const r=await fetch('/api/v1/scan/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}),d=await r.json();if(!r.ok)throw Error(d.error||'Analysis failed');o.style.display='block';o.innerHTML=`<strong>${esc(d.verdict)} risk · ${(d.risk_score*100).toFixed(0)}%</strong><pre>${esc(JSON.stringify(d.details,null,2))}</pre>`;await refresh()}catch(e){o.style.display='block';o.textContent=e.message}finally{b.disabled=false;b.textContent='Analyze safely'}};refresh();
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EvoShield Security</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0a1020;--panel:#111b30;--line:#263752;--muted:#9aaac2;--cyan:#60d5cf;--white:#f3f7ff;--red:#ff777f;--amber:#f6c66c}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -20%,#183955 0,transparent 50%),var(--bg);font:15px/1.5 Segoe UI,Arial,sans-serif;color:var(--white)}
+    header{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 max(calc((100vw - 1160px)/2),24px)}.brand{font-weight:750;font-size:20px}.brand i{color:var(--cyan);font-style:normal}.state,.sub{color:var(--muted)}.state{font-size:13px}.state b{display:inline-block;background:#42d69a;width:8px;height:8px;border-radius:100%;margin-right:9px}
+    main{max-width:1160px;margin:40px auto;padding:0 24px}.heading{margin-bottom:28px}.eyebrow{color:var(--cyan);text-transform:uppercase;letter-spacing:2px;font-size:11px;font-weight:700}h1{font-size:34px;margin:6px 0}h2{font-size:16px;margin:0 0 18px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+    .card{background:linear-gradient(145deg,#142139,#10192a);border:1px solid var(--line);border-radius:16px;padding:23px;box-shadow:0 14px 38px #050a14aa}.tabs{display:flex;gap:8px;margin-bottom:14px}.tab{border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 14px;border-radius:9px;cursor:pointer}.tab.active{background:#193646;border-color:#2b827f;color:var(--cyan)}
+    textarea,input{width:100%;border:1px solid var(--line);border-radius:10px;background:#0b1424;color:var(--white);padding:13px;font:inherit}textarea{height:158px;resize:vertical}.row{margin-top:12px}.btn{border:0;background:var(--cyan);color:#072126;padding:11px 18px;border-radius:9px;font-weight:750;cursor:pointer}.btn:disabled{opacity:.6}.hint,footer{color:var(--muted);font-size:12px;margin-top:12px}
+    .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{border:1px solid var(--line);border-radius:12px;padding:16px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:26px;margin-top:5px}.feed{margin-top:18px}.feedhead{display:flex;justify-content:space-between}.feedhead h2{margin:0}.refresh{background:none;color:var(--cyan);border:0;cursor:pointer}
+    .scanrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding:13px 2px}.scanrow small{display:block;color:var(--muted);font-size:12px}.pill{font-size:11px;font-weight:750;padding:5px 9px;border-radius:20px;background:#203448;color:var(--cyan)}.pill.HIGH{background:#48232c;color:var(--red)}.pill.MEDIUM,.pill.REVIEW{background:#493b22;color:var(--amber)}.history-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:12px}.history-controls button{background:#193646;color:var(--cyan);border:1px solid #2b827f;padding:7px 12px;border-radius:8px;cursor:pointer}.history-controls button:disabled{opacity:.4;cursor:default}
+    .result{display:none;margin-top:15px;border:1px solid var(--line);border-radius:12px;padding:16px}.result.high{border-color:#75404a}.result.medium,.result.review{border-color:#715b32}.result-title{display:block;font-size:17px;margin-bottom:8px}.result p{margin:7px 0;color:#d7e0ef}.result h3{font-size:13px;margin:14px 0 5px}.result ul{margin:5px 0;padding-left:22px;color:#bbcada}.result li{margin:4px 0}.result .action{margin-top:12px;color:var(--cyan)}.empty{color:var(--muted);padding:20px 0}
+    @media(max-width:760px){main{margin-top:25px}.grid{grid-template-columns:1fr}h1{font-size:28px}}
+  </style>
+</head>
+<body>
+  <header><div class="brand"><i>◈</i> EvoShield</div><div class="state"><b></b>Protection service ready</div></header>
+  <main>
+    <div class="heading"><div class="eyebrow">Personal security console</div><h1>Threat monitoring</h1><div class="sub">Check suspicious messages, links, and files. Review every result below.</div></div>
+    <div class="grid">
+      <section class="card">
+        <h2>Run a security check</h2>
+        <div class="tabs"><button class="tab active" data-kind="text">Message</button><button class="tab" data-kind="url">Website link</button><button class="tab" data-kind="file">File</button></div>
+        <div id="textInput"><textarea id="content" placeholder="Paste a suspicious SMS, email, or call transcript…"></textarea></div>
+        <div id="urlInput" hidden><input id="url" placeholder="https://example.com"></div>
+        <div id="fileInput" hidden><input id="file" type="file"></div>
+        <div class="row"><button id="scan" class="btn">Analyze safely</button></div>
+        <div class="hint">Files are inspected statically and never executed. Scan results are saved in local history.</div>
+        <div id="result" class="result" aria-live="polite"></div>
+      </section>
+      <aside class="card"><h2>Activity overview</h2><div class="statgrid"><div class="stat"><small>Total checks</small><strong id="total">—</strong></div><div class="stat"><small>High risk</small><strong id="high">—</strong></div><div class="stat"><small>Message checks</small><strong id="messages">—</strong></div><div class="stat"><small>Service</small><strong style="font-size:18px;color:var(--cyan)">Active</strong></div></div><footer>Windows automatically checks files in configured folders (up to 20 MB) using limited static checks. URLs and messages are checked only when submitted; app/browser monitoring is not connected yet.</footer></aside>
+    </div>
+    <section class="card feed"><div class="feedhead"><h2>All checked items</h2><button class="refresh" id="refresh">Refresh</button></div><div id="items"><div class="empty">Loading scan history…</div></div><div class="history-controls"><button id="previous" disabled>Previous</button><span id="history-page" class="sub">Loading…</span><button id="next" disabled>Next</button></div></section>
+    <footer>Risk indicators are not a guarantee that a file or message is safe. Keep your operating system protection enabled.</footer>
+  </main>
+  <script>
+    let kind = 'text';
+    document.querySelectorAll('.tab').forEach(tab => tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(item => item.classList.remove('active'));
+      tab.classList.add('active');
+      kind = tab.dataset.kind;
+      for (const inputKind of ['text', 'url', 'file']) {
+        document.querySelector(`#${inputKind}Input`).hidden = kind !== inputKind;
+      }
+    });
+
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    const typeNames = {text:'Message or call transcript', url:'Website link', file:'File'};
+    const riskNames = {HIGH:'High risk', MEDIUM:'Suspicious', REVIEW:'Needs review', LOW:'Lower risk'};
+    const textIndicatorReasons = {
+      government_or_police_impersonation: 'The sender claims to represent police or another government authority.',
+      threat_language: 'The message threatens arrest or legal action.',
+      urgency: 'The message pressures you to act immediately.',
+      financial_request: 'The sender asks you to pay or transfer money.',
+      otp_pin_aadhaar_pan_request: 'The sender asks for an OTP, PIN, identity number, or banking details.',
+      fake_document_indicators: 'The sender refers to an official-looking notice or warrant.',
+      call_pressure: 'The sender pressures you to stay on a call or keep the matter secret.'
+    };
+    const urlReasons = {
+      brand_lookalike: feature => `The address appears to imitate ${feature || 'a familiar brand'} using a different website domain.`,
+      suspicious_keyword_in_host: () => 'The website name uses account, login, payment, or security terms that scammers commonly use.',
+      suspicious_keyword: () => 'The link contains words often used in fake sign-in or account-verification pages.',
+      non_https: () => 'The link does not use a secure HTTPS connection.',
+      ip_address: () => 'The link uses a numeric internet address instead of a normal website name.',
+      url_length: () => 'The link is unusually long and may be hiding its real destination.',
+      special_character: () => 'The link contains an unusual number of special characters.',
+      suspicious_extension: () => 'The link points to a program or script file that could be unsafe to download.',
+      suspicious_scheme: () => 'The link uses a browser action scheme instead of a regular website address.',
+      url_userinfo: () => 'The address contains extra sign-in information that can disguise which website it opens.',
+      punycode_host: () => 'The website name uses encoded characters that can make look-alike letters harder to notice.'
+    };
+    const friendly = value => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase());
+
+    function describeResult(scanType, details, verdict) {
+      const reasons = [];
+      let message = '';
+      let action = 'If you are unsure, verify through a trusted app or by typing the official website address yourself.';
+      if (scanType === 'url') {
+        const result = details.url_analysis || {};
+        for (const indicator of result.indicators || []) {
+          if (urlReasons[indicator]) reasons.push(urlReasons[indicator](result.features?.brand_lookalike));
+        }
+        if (!reasons.length) reasons.push('The checks did not find strong warning signs in this address.');
+        if (verdict === 'HIGH') {
+          message = 'This link has strong warning signs and may lead to a fake or unsafe website.';
+          action = 'Do not open it or enter passwords, one-time codes, or payment details.';
+        } else if (verdict === 'MEDIUM' || verdict === 'REVIEW') {
+          message = 'This link has some warning signs. Treat it with caution.';
+        } else {
+          message = 'No strong warning signs were found in this address. That does not prove the website is safe.';
+        }
+        if (result.features?.analysis_mode === 'heuristic_fallback') {
+          reasons.push('This check looks for suspicious URL patterns; it does not query a live website-reputation service.');
+        }
+      } else if (scanType === 'text') {
+        const arrest = details.digital_arrest || {};
+        const text = details.text_analysis || {};
+        if (arrest.category === 'DIGITAL_ARREST') {
+          message = 'This message has strong signs of a digital-arrest scam.';
+          action = 'Do not send money or share one-time codes or personal details. Contact the organization through a number you already trust.';
+        } else if (verdict === 'HIGH' || arrest.category === 'SUSPICIOUS') {
+          message = 'This message contains suspicious language. Verify who sent it before responding.';
+          action = 'Do not use phone numbers or links included in the message to verify the claim.';
+        } else {
+          message = 'No strong scam warning signs were found in this text. This does not confirm that the sender is genuine.';
+        }
+        for (const group of Object.keys(arrest.indicators || {})) reasons.push(textIndicatorReasons[group] || `Possible scam sign: ${friendly(group)}.`);
+        for (const indicator of text.indicators || []) reasons.push(`Message warning sign: ${friendly(indicator)}.`);
+        if (!reasons.length) reasons.push('The text checks did not find a specific warning sign.');
+      } else {
+        const file = details.static_file_analysis || {};
+        if (file.eicar_test_signature) {
+          message = 'This file contains the harmless EICAR antivirus test pattern.';
+          reasons.push('The pattern is commonly used to test antivirus alerts; it is not an actual virus.');
+          action = 'Use this result only to confirm the test workflow. Keep your normal antivirus protection enabled.';
+        } else if (file.executable_or_script_extension) {
+          message = 'This file type can run a program or script, so it needs extra care.';
+          reasons.push('The file was checked without opening or running it.');
+          action = 'Only open it if you trust the sender and expected this file.';
+        } else {
+          message = 'The basic file checks did not find a known test signature or risky file extension.';
+          reasons.push('This was a limited static check; it cannot prove the file is safe.');
+        }
+      }
+      return {message, action, reasons};
+    }
+
+    function resultMarkup(scanType, details, verdict) {
+      const summary = describeResult(scanType, details || {}, verdict);
+      const label = verdict === 'HIGH' ? 'High risk' : verdict === 'MEDIUM' ? 'Suspicious' : verdict === 'REVIEW' ? 'Needs review' : 'Lower risk';
+      const points = summary.reasons.map(reason => `<li>${esc(reason)}</li>`).join('');
+      return `<strong class="result-title">${label}</strong><p>${esc(summary.message)}</p><h3>What we noticed</h3><ul>${points}</ul><p class="action">${esc(summary.action)}</p>`;
+    }
+
+    let historyOffset = 0;
+    const historyLimit = 25;
+    async function refresh() {
+      try {
+        const response = await fetch(`/api/v1/scans/?limit=${historyLimit}&offset=${historyOffset}`);
+        if (!response.ok) throw Error('History request failed');
+        const data = await response.json();
+        document.querySelector('#total').textContent = data.total;
+        document.querySelector('#high').textContent = data.high_total;
+        document.querySelector('#messages').textContent = data.message_total;
+        document.querySelector('#items').innerHTML = data.scans.length ? data.scans.map(scan => {
+          const summary = describeResult(scan.type, scan.details || {}, scan.verdict);
+          const typeName = typeNames[scan.type] || 'Security check';
+          return `<div class="scanrow"><div>${esc(scan.subject)}<small>${esc(typeName)} · Source: ${esc(scan.source || 'unknown')} · ${esc(summary.message)} · ${new Date(scan.created_at).toLocaleString()}</small></div><span class="pill ${esc(scan.verdict)}">${esc(riskNames[scan.verdict] || 'Checked')}</span></div>`;
+        }).join('') : '<div class="empty">No checks yet. Analyze a message or link to get started.</div>';
+        const start = data.total ? historyOffset + 1 : 0;
+        const end = Math.min(historyOffset + data.scans.length, data.total);
+        document.querySelector('#history-page').textContent = `Showing ${start}–${end} of ${data.total} checked items`;
+        document.querySelector('#previous').disabled = historyOffset <= 0;
+        document.querySelector('#next').disabled = historyOffset + historyLimit >= data.total;
+      } catch {
+        document.querySelector('#items').innerHTML = '<div class="empty">Cannot reach the EvoShield service. Start it and refresh.</div>';
+        document.querySelector('#history-page').textContent = 'History is unavailable.';
+      }
+    }
+
+    document.querySelector('#refresh').onclick = refresh;
+    document.querySelector('#previous').onclick = () => { historyOffset = Math.max(0, historyOffset - historyLimit); refresh(); };
+    document.querySelector('#next').onclick = () => { historyOffset += historyLimit; refresh(); };
+    setInterval(refresh, 10000);
+    document.querySelector('#scan').onclick = async () => {
+      const payload = {type: kind, source: 'web'};
+      if (kind === 'text') payload.content = document.querySelector('#content').value;
+      if (kind === 'url') payload.content = document.querySelector('#url').value;
+      if (kind === 'file') {
+        const file = document.querySelector('#file').files[0];
+        if (!file) return alert('Choose a file first');
+        if (file.size > 20 * 1024 * 1024) return alert('Maximum file size is 20 MB');
+        payload.subject = file.name;
+        payload.content_base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+      const button = document.querySelector('#scan');
+      const output = document.querySelector('#result');
+      button.disabled = true;
+      button.textContent = 'Analyzing…';
+      try {
+        const response = await fetch('/api/v1/scan/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        const data = await response.json();
+        if (!response.ok) throw Error(data.error || 'Analysis failed');
+        output.className = `result ${String(data.verdict || '').toLowerCase()}`;
+        output.innerHTML = resultMarkup(kind, data.details, data.verdict);
+        output.style.display = 'block';
+        await refresh();
+      } catch (error) {
+        output.className = 'result';
+        output.style.display = 'block';
+        output.textContent = error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Analyze safely';
+      }
+    };
+    refresh();
+  </script>
+</body>
+</html>

@@ -127,5 +127,22 @@ def _serialize(record):
 
 @require_GET
 def scan_history(request):
-    rows = [_serialize(item) for item in ScanRecord.objects.all()[:100]]
-    return JsonResponse({"scans": rows, "total": ScanRecord.objects.count()})
+    try:
+        limit = int(request.GET.get("limit", 25))
+        offset = int(request.GET.get("offset", 0))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Page limit and offset must be whole numbers."}, status=400)
+
+    limit = min(max(limit, 1), 100)
+    offset = max(offset, 0)
+    records = ScanRecord.objects.all()
+    total = records.count()
+    rows = [_serialize(item) for item in records[offset:offset + limit]]
+    return JsonResponse({
+        "scans": rows,
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "high_total": records.filter(verdict="HIGH").count(),
+        "message_total": records.filter(entity_type="text").count(),
+    })

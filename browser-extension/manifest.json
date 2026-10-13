@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "EvoShield Link Monitor",
+  "version": "1.0.0",
+  "description": "Checks visited page addresses with the local EvoShield service.",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["http://127.0.0.1:8000/*", "http://localhost:8000/*"],
+  "background": { "service_worker": "service-worker.js" },
+  "action": { "default_title": "EvoShield link monitor" }
+}

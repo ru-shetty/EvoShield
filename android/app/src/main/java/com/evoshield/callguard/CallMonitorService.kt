@@ -15,6 +15,9 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.Date
 import java.util.Locale
 
 class CallMonitorService : Service(), RecognitionListener {
@@ -93,7 +96,13 @@ class CallMonitorService : Service(), RecognitionListener {
         while (recentUtterances.size > 8) recentUtterances.removeFirst()
         val detection = DigitalArrestDetector.analyze(recentUtterances.joinToString(" "))
         if (detection.category == "DIGITAL_ARREST" || detection.category == "SUSPICIOUS") {
-            updateStatus("${detection.category.replace('_', ' ')} · ${(detection.probability * 100).toInt()}% · ${detection.indicators.joinToString()}")
+            val reasons = detection.indicators.joinToString(" ") { explainIndicator(it) }
+            val statusMessage = if (detection.category == "DIGITAL_ARREST") {
+                "Possible digital-arrest scam. $reasons"
+            } else {
+                "Suspicious call language. $reasons"
+            }
+            updateStatus(statusMessage)
             if (detection.category != lastAlertCategory || lastAlertCategory == "NORMAL") showThreat(detection)
             lastAlertCategory = detection.category
         } else {
@@ -103,14 +112,38 @@ class CallMonitorService : Service(), RecognitionListener {
 
     private fun showThreat(detection: Detection) {
         val manager = getSystemService(NotificationManager::class.java)
+        val reasons = detection.indicators.joinToString(" ") { explainIndicator(it) }
+        saveAlert(detection.category, reasons)
+        LocalEntityHistory.add(this, "Call alert", "Phone call", detection.category.replace('_', ' '),
+            if (detection.category == "DIGITAL_ARREST") "HIGH" else "MEDIUM", reasons)
         manager.notify(ALERT_ID, Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(if (detection.category == "DIGITAL_ARREST") "Possible digital-arrest scam" else "Suspicious call language")
-            .setContentText("${detection.indicators.joinToString()}. Never share OTPs or transfer money under pressure.")
+            .setContentText("$reasons Never share one-time codes or transfer money under pressure.")
             .setCategory(Notification.CATEGORY_ALARM)
             .setPriority(Notification.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build())
+    }
+
+    private fun saveAlert(category: String, reasons: String) {
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        val old = try { JSONArray(prefs.getString(ALERT_HISTORY, "[]")) } catch (_: Exception) { JSONArray() }
+        val updated = JSONArray()
+        updated.put(JSONObject().put("category", category).put("reasons", reasons).put("time", System.currentTimeMillis()))
+        for (index in 0 until minOf(old.length(), MAX_SAVED_ALERTS - 1)) updated.put(old.getJSONObject(index))
+        prefs.edit().putString(ALERT_HISTORY, updated.toString()).apply()
+    }
+
+    private fun explainIndicator(indicator: String): String = when (indicator) {
+        "government/police impersonation" -> "The caller claims to be police or another government authority."
+        "threat language" -> "They threaten arrest or legal action."
+        "urgency" -> "They pressure you to act immediately."
+        "financial request" -> "They ask you to pay or transfer money."
+        "sensitive information request" -> "They ask for an OTP, PIN, identity number, or banking details."
+        "fake document" -> "They refer to an official-looking notice or warrant."
+        "call pressure" -> "They pressure you to stay on the call or keep it secret."
+        else -> "The call contains language commonly used to pressure or frighten people."
     }
 
     private fun statusNotification(message: String): Notification {
@@ -158,7 +191,9 @@ class CallMonitorService : Service(), RecognitionListener {
     companion object {
         const val ACTION_STOP = "com.evoshield.callguard.STOP"
         const val PREFS = "call_monitor"
-        private const val CHANNEL = "evoshield_call_monitor"
+        const val ALERT_HISTORY = "alert_history"
+        private const val MAX_SAVED_ALERTS = 50
+        const val CHANNEL = "evoshield_call_monitor"
         private const val NOTIFICATION_ID = 7101
         private const val ALERT_ID = 7102
     }

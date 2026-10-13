@@ -12,6 +12,22 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 
+INDICATOR_EXPLANATIONS = {
+    "government_or_police_impersonation": "The caller claims to be police or another government authority.",
+    "threat_language": "The caller threatens arrest or legal action.",
+    "urgency": "The caller pressures you to act immediately.",
+    "financial_request": "The caller asks for a payment or money transfer.",
+    "otp_pin_aadhaar_pan_request": "The caller asks for an OTP, PIN, Aadhaar, PAN, or banking details.",
+    "fake_document_indicators": "The caller refers to an official-looking notice or warrant.",
+    "call_pressure": "The caller pressures you to stay on the call or keep it secret.",
+}
+
+
+def explain_indicators(indicators):
+    explanations = [INDICATOR_EXPLANATIONS[key] for key in indicators if key in INDICATOR_EXPLANATIONS]
+    return " ".join(explanations) or "The call contains language commonly used to pressure or frighten people."
+
+
 def send_alert(endpoint, text):
     payload = json.dumps({
         "type": "text",
@@ -35,6 +51,7 @@ def notify(title, message):
 def main():
     parser = argparse.ArgumentParser(description="Monitor call speech from the Windows default audio output")
     parser.add_argument("--model", default="base", help="Faster Whisper model: tiny, base, small, medium, or large-v3")
+    parser.add_argument("--language", choices=("auto", "en", "hi"), default="auto", help="Speech language: auto, English (en), or Hindi (hi)")
     parser.add_argument("--window-seconds", type=int, default=6)
     parser.add_argument("--endpoint", default="http://127.0.0.1:8000/api/v1/scan/")
     args = parser.parse_args()
@@ -52,9 +69,10 @@ def main():
         parser.error("No default Windows audio output device is available.")
     loopback = sc.get_microphone(id=str(speaker.name), include_loopback=True)
     print(f"Monitoring output audio device: {speaker.name}")
-    print("EvoShield is listening only while this window is open. Press Ctrl+C to stop.")
-    print("Audio stays in memory; only suspicious transcript text is sent to the local EvoShield API.")
+    print(f"Preparing the local speech model ({args.model}, language: {args.language})...")
     model = WhisperModel(args.model, device="cpu", compute_type="int8")
+    print("Speech model ready. Monitoring is active only while this window is open; press Ctrl+C to stop.")
+    print("Audio stays in memory; only suspicious transcript text is sent to the local EvoShield API.")
     from backend.modules.M09_digital_arrest_impersonation_detection.algorithms.digital_arrest_detector import detect_digital_arrest
 
     context = deque(maxlen=10)
@@ -70,7 +88,8 @@ def main():
                     continue
                 samples = np.asarray(audio, dtype=np.float32)
                 mono = samples.mean(axis=1) if samples.ndim > 1 else samples.reshape(-1)
-                segments, _info = model.transcribe(mono, language=None, vad_filter=True, beam_size=1)
+                language = None if args.language == "auto" else args.language
+                segments, _info = model.transcribe(mono, language=language, vad_filter=True, beam_size=1)
                 recognized = " ".join(segment.text.strip() for segment in segments if segment.text.strip())
                 if not recognized:
                     continue
@@ -83,8 +102,8 @@ def main():
                     continue
                 last_alert = time.monotonic()
                 title = "Possible digital-arrest scam" if result["category"] == "DIGITAL_ARREST" else "Suspicious call language"
-                labels = ", ".join(result["indicators"].keys())
-                notify(title, f"Indicators: {labels}. Do not share OTPs or send money.")
+                reasons = explain_indicators(result["indicators"])
+                notify(title, f"{reasons} Do not share one-time codes or transfer money under pressure.")
                 try:
                     send_alert(args.endpoint, rolling_text)
                 except Exception as error:
