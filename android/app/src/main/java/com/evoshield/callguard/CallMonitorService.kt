@@ -46,7 +46,11 @@ class CallMonitorService : Service(), RecognitionListener {
             stopMonitoring()
             return START_NOT_STICKY
         }
-        callType = if (intent?.getStringExtra(EXTRA_CALL_TYPE) == "video") "video" else "voice"
+        callType = when (intent?.getStringExtra(EXTRA_CALL_TYPE)) {
+            "video" -> "video"
+            "both" -> "both"
+            else -> "voice"
+        }
         running = true
         recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this).also { it.setRecognitionListener(this) }
         startListening()

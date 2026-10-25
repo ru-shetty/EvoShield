@@ -346,26 +346,52 @@ class MainActivity : Activity() {
     }
 
     private fun addNotificationControls() {
-        val enabled = Settings.Secure.getString(contentResolver, "enabled_notification_listeners").orEmpty().contains(packageName)
+        val listenerEnabled = Settings.Secure.getString(contentResolver, "enabled_notification_listeners").orEmpty().contains(packageName)
+        val postPermissionGranted = Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        val appNotificationsEnabled = getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+        val enabled = listenerEnabled && postPermissionGranted && appNotificationsEnabled
         val card = card()
         card.addView(TextView(this).apply {
-            text = if (enabled) "Message and link monitoring is enabled" else "Turn on message and link checks"
+            text = if (enabled) "Live message and link alerts are enabled" else "Finish enabling live message alerts"
             textSize = 15f
             setTextColor(primary)
             setTypeface(null, Typeface.BOLD)
         })
         card.addView(TextView(this).apply {
-            text = "Checks visible notification previews from supported messaging apps. Results are stored on this phone."
+            text = if (enabled) {
+                "Checks visible notification previews from supported messaging apps. Suspicious messages and links trigger a phone notification; results stay on this phone."
+            } else {
+                "Allow EvoShield notifications and notification access. Android only provides the notification previews shown by supported messaging apps."
+            }
             textSize = 12f
             setTextColor(muted)
             setPadding(0, dp(4), 0, dp(8))
         })
         if (!enabled) card.addView(Button(this).apply {
-            text = "Enable message, link, and threat alerts"
+            text = when {
+                !postPermissionGranted -> "Allow EvoShield notifications"
+                !appNotificationsEnabled -> "Open EvoShield notification settings"
+                else -> "Enable message, link, and threat alerts"
+            }
             setAllCaps(false)
-            setOnClickListener { requestNotificationAccess() }
+            setOnClickListener {
+                when {
+                    !postPermissionGranted -> requestNotificationAccess()
+                    !appNotificationsEnabled -> openAppNotificationSettings()
+                    else -> requestNotificationAccess()
+                }
+            }
         })
         content.addView(card, marginParams(bottom = 16))
+    }
+
+    private fun openAppNotificationSettings() {
+        val intent = if (Build.VERSION.SDK_INT >= 26) {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        } else {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
+        }
+        startActivity(intent)
     }
 
     private fun addCallControls() {
