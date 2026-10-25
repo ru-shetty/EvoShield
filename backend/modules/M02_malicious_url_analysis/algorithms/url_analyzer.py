@@ -36,6 +36,7 @@ _BRAND_DOMAINS = {
     "facebook": ("facebook.com", "fb.com"),
     "google": ("google.com", "google.co.in", "google.co.uk", "google.ca"),
     "instagram": ("instagram.com",),
+    "meesho": ("meesho.com",),
     "microsoft": ("microsoft.com", "microsoftonline.com", "live.com", "office.com", "outlook.com"),
     "netflix": ("netflix.com",),
     "paypal": ("paypal.com",),
@@ -63,10 +64,16 @@ class MaliciousURLAnalyzer:
 
         self.model = None
         self.vectorizer = None
+        self.model_load_error = False
         if model_path.exists():
-            saved_model = joblib.load(model_path)
-            self.model = saved_model["model"]
-            self.vectorizer = saved_model["vectorizer"]
+            try:
+                saved_model = joblib.load(model_path)
+                self.model = saved_model["model"]
+                self.vectorizer = saved_model["vectorizer"]
+            except Exception:
+                # A missing, incompatible, or damaged model should not prevent
+                # URL checks; the deterministic rules below remain available.
+                self.model_load_error = True
 
     # ----------------------------------------------------------------
     # Main analysis
@@ -144,20 +151,32 @@ class MaliciousURLAnalyzer:
         if has_punycode:
             indicators.append("punycode_host")
 
+        model_error = self.model_load_error
         if self.model is not None and self.vectorizer is not None:
-            vectorized_url = self.vectorizer.transform([cleaned_url])
-            model_score = float(self.model.predict_proba(vectorized_url)[0][1])
-            score = max(
-                model_score,
-                self._rule_score(
+            try:
+                vectorized_url = self.vectorizer.transform([cleaned_url])
+                model_score = float(self.model.predict_proba(vectorized_url)[0][1])
+                score = max(
+                    model_score,
+                    self._rule_score(
+                        indicators,
+                        keyword_count=keyword_count,
+                        host_keyword_count=host_keyword_count,
+                        path_keyword_count=path_keyword_count,
+                        trusted_brand_host=trusted_brand_host,
+                    ),
+                )
+                analysis_mode = "trained_model"
+            except Exception:
+                model_error = True
+                score = self._rule_score(
                     indicators,
                     keyword_count=keyword_count,
                     host_keyword_count=host_keyword_count,
                     path_keyword_count=path_keyword_count,
                     trusted_brand_host=trusted_brand_host,
-                ),
-            )
-            analysis_mode = "trained_model"
+                )
+                analysis_mode = "heuristic_fallback"
         else:
             # Keep first-run installs usable without treating this heuristic
             # score as a trained probability estimate. Explicit rules give
@@ -198,6 +217,8 @@ class MaliciousURLAnalyzer:
 
         features = {
             "analysis_mode": analysis_mode,
+            "model_available": int(self.model is not None and self.vectorizer is not None and not model_error),
+            "model_fallback_used": int(analysis_mode == "heuristic_fallback"),
             "url_length": len(url),
             "has_https": int(
                 parsed_url.scheme.lower() == "https"
@@ -322,22 +343,45 @@ class MaliciousURLAnalyzer:
 
     @staticmethod
     def _impersonated_brand(hostname: str) -> str | None:
-        """Return a known brand whose name appears in a non-first-party host."""
+        """Return a known brand imitated by exact, confusable, or one-edit host text."""
         if not hostname:
             return None
 
         normalized = hostname.translate(_COMMON_HOST_CONFUSABLES)
         compact_host = re.sub(r"[^a-z0-9]", "", normalized)
+        labels = [
+            re.sub(r"[^a-z0-9]", "", label.translate(_COMMON_HOST_CONFUSABLES))
+            for label in hostname.split(".")
+        ]
         for brand, official_domains in _BRAND_DOMAINS.items():
-            if brand not in compact_host:
-                continue
             if any(
                 hostname == domain or hostname.endswith("." + domain)
                 for domain in official_domains
             ):
                 continue
-            return brand
+            if brand in compact_host or any(
+                len(label) >= 5 and MaliciousURLAnalyzer._edit_distance(label, brand) <= 1
+                for label in labels
+            ):
+                return brand
         return None
+
+    @staticmethod
+    def _edit_distance(left: str, right: str) -> int:
+        """Compute Levenshtein distance without adding a runtime dependency."""
+        if len(left) < len(right):
+            left, right = right, left
+        previous = list(range(len(right) + 1))
+        for row, left_char in enumerate(left, start=1):
+            current = [row]
+            for column, right_char in enumerate(right, start=1):
+                current.append(min(
+                    current[-1] + 1,
+                    previous[column] + 1,
+                    previous[column - 1] + (left_char != right_char),
+                ))
+            previous = current
+        return previous[-1]
 
     @staticmethod
     def _is_trusted_brand_host(hostname: str) -> bool:

@@ -26,6 +26,7 @@ class CallMonitorService : Service(), RecognitionListener {
     private var running = false
     private var noSpeechCount = 0
     private var lastAlertCategory = "NORMAL"
+    private var callType = "voice"
     private val recentUtterances = ArrayDeque<String>()
 
     override fun onCreate() {
@@ -45,6 +46,7 @@ class CallMonitorService : Service(), RecognitionListener {
             stopMonitoring()
             return START_NOT_STICKY
         }
+        callType = if (intent?.getStringExtra(EXTRA_CALL_TYPE) == "video") "video" else "voice"
         running = true
         recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this).also { it.setRecognitionListener(this) }
         startListening()
@@ -62,7 +64,8 @@ class CallMonitorService : Service(), RecognitionListener {
         }
         try {
             recognizer?.startListening(intent)
-            updateStatus("Listening locally. Use speakerphone for the clearest call audio.")
+            val modeLabel = when (callType) { "video" -> "video call"; "both" -> "voice and video calls"; else -> "voice call" }
+            updateStatus("Listening for scam speech in $modeLabel locally. Use speakerphone for the clearest audio.")
         } catch (_: Exception) {
             updateStatus("Call audio is not available to EvoShield. Try speakerphone and restart monitoring.")
         }
@@ -94,7 +97,7 @@ class CallMonitorService : Service(), RecognitionListener {
         noSpeechCount = 0
         if (recentUtterances.isEmpty() || recentUtterances.last() != text) recentUtterances.addLast(text)
         while (recentUtterances.size > 8) recentUtterances.removeFirst()
-        val detection = DigitalArrestDetector.analyze(recentUtterances.joinToString(" "))
+        val detection = DigitalArrestDetector.analyze(recentUtterances.joinToString(" "), callType)
         if (detection.category == "DIGITAL_ARREST" || detection.category == "SUSPICIOUS") {
             val reasons = detection.indicators.joinToString(" ") { explainIndicator(it) }
             val statusMessage = if (detection.category == "DIGITAL_ARREST") {
@@ -113,12 +116,13 @@ class CallMonitorService : Service(), RecognitionListener {
     private fun showThreat(detection: Detection) {
         val manager = getSystemService(NotificationManager::class.java)
         val reasons = detection.indicators.joinToString(" ") { explainIndicator(it) }
-        saveAlert(detection.category, reasons)
-        LocalEntityHistory.add(this, "Call alert", "Phone call", detection.category.replace('_', ' '),
+        saveAlert(detection.category, reasons, callType)
+        val callLabel = when (callType) { "video" -> "Video call"; "both" -> "Voice and video calls"; else -> "Voice call" }
+        LocalEntityHistory.add(this, "Call alert", callLabel, "$callLabel scam warning",
             if (detection.category == "DIGITAL_ARREST") "HIGH" else "MEDIUM", reasons)
         manager.notify(ALERT_ID, Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle(if (detection.category == "DIGITAL_ARREST") "Possible digital-arrest scam" else "Suspicious call language")
+            .setContentTitle(if (detection.category == "DIGITAL_ARREST") "Possible digital-arrest scam in $callLabel" else "Suspicious $callLabel language")
             .setContentText("$reasons Never share one-time codes or transfer money under pressure.")
             .setCategory(Notification.CATEGORY_ALARM)
             .setPriority(Notification.PRIORITY_HIGH)
@@ -126,11 +130,11 @@ class CallMonitorService : Service(), RecognitionListener {
             .build())
     }
 
-    private fun saveAlert(category: String, reasons: String) {
+    private fun saveAlert(category: String, reasons: String, callType: String) {
         val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         val old = try { JSONArray(prefs.getString(ALERT_HISTORY, "[]")) } catch (_: Exception) { JSONArray() }
         val updated = JSONArray()
-        updated.put(JSONObject().put("category", category).put("reasons", reasons).put("time", System.currentTimeMillis()))
+        updated.put(JSONObject().put("category", category).put("reasons", reasons).put("call_type", callType).put("time", System.currentTimeMillis()))
         for (index in 0 until minOf(old.length(), MAX_SAVED_ALERTS - 1)) updated.put(old.getJSONObject(index))
         prefs.edit().putString(ALERT_HISTORY, updated.toString()).apply()
     }
@@ -143,6 +147,7 @@ class CallMonitorService : Service(), RecognitionListener {
         "sensitive information request" -> "They ask for an OTP, PIN, identity number, or banking details."
         "fake document" -> "They refer to an official-looking notice or warrant."
         "call pressure" -> "They pressure you to stay on the call or keep it secret."
+        "video call manipulation" -> "They pressure you to keep your camera on, show identity documents, or share your screen."
         else -> "The call contains language commonly used to pressure or frighten people."
     }
 
@@ -190,6 +195,7 @@ class CallMonitorService : Service(), RecognitionListener {
 
     companion object {
         const val ACTION_STOP = "com.evoshield.callguard.STOP"
+        const val EXTRA_CALL_TYPE = "call_type"
         const val PREFS = "call_monitor"
         const val ALERT_HISTORY = "alert_history"
         private const val MAX_SAVED_ALERTS = 50

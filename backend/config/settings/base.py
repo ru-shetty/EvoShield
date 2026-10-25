@@ -15,3 +15,4 @@ USE_TZ = True
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Kolkata"
 STATIC_URL = "static/"
+DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024

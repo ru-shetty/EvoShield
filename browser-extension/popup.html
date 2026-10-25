@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EvoShield Link Monitor</title>
+  <style>
+    :root{color-scheme:dark;font:14px/1.45 Segoe UI,Arial,sans-serif;color:#edf4fb;background:#0b1220}*{box-sizing:border-box}body{width:320px;margin:0;padding:18px}.brand{font-size:17px;font-weight:700}.brand span{color:#64d8c8}.state{margin:12px 0;padding:10px;border:1px solid #263951;border-radius:9px;color:#b9c8d9}.state.on{border-color:#287b65;color:#79e1bf}.state.off{border-color:#765d35;color:#f5c66d}.button{width:100%;border:0;border-radius:8px;padding:10px;background:#64d8c8;color:#092126;font-weight:700;cursor:pointer}.button.off{background:#25364b;color:#eef4fb}.card{margin-top:14px;padding:12px;background:#111c2e;border:1px solid #263951;border-radius:10px}.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#92a3bb}.risk{font-weight:700;margin:5px 0}.risk.high{color:#ff7d86}.risk.medium{color:#f5c66d}.risk.low{color:#64d8c8}.muted{font-size:12px;color:#aebdd0;overflow-wrap:anywhere;margin-top:6px}.link{display:block;margin-top:13px;color:#64d8c8;text-decoration:none}.foot{font-size:11px;color:#8293a9;margin-top:12px}
+  </style>
+</head>
+<body>
+  <div class="brand"><span>◈</span> EvoShield link monitor</div>
+  <div id="state" class="state">Checking…</div>
+  <button id="toggle" class="button" type="button">Checking…</button>
+  <section class="card" aria-live="polite">
+    <div class="label">Most recent automatic check</div>
+    <div id="risk" class="risk">No website checked yet</div>
+    <div id="host" class="muted">Visit an HTTP or HTTPS website to check its address.</div>
+    <div id="message" class="muted"></div>
+    <div id="time" class="muted"></div>
+  </section>
+  <a class="link" href="http://127.0.0.1:8000/" target="_blank">Open EvoShield dashboard →</a>
+  <div class="foot">Checks website addresses only. EvoShield does not read page contents.</div>
+  <script src="popup.js"></script>
+</body>
+</html>

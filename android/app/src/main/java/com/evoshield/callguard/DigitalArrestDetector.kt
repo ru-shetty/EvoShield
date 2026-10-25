@@ -10,13 +10,15 @@ object DigitalArrestDetector {
         "financial request" to listOf("send money", "transfer money", "pay now", "make payment", "bank transfer", "upi payment", "account number", "pay the fine", "pay the penalty", "paise bhejo", "paisa transfer karo", "fine jama karo", "जुर्माना भरो", "पैसे भेजो", "पैसा ट्रांसफर करो"),
         "sensitive information request" to listOf("otp", "one time password", "pin", "aadhaar", "aadhar", "pan card", "pan number", "bank details", "debit card", "credit card", "otp batao", "otp bataye", "aadhaar number batao", "ओटीपी बताओ", "आधार नंबर बताओ"),
         "fake document" to listOf("fake warrant", "arrest notice", "legal notice", "court notice", "case document", "government notice", "official document", "verification document", "nakli warrant", "fake police notice", "नकली वारंट", "फर्जी वारंट"),
-        "call pressure" to listOf("do not disconnect", "stay on the call", "keep the video call on", "do not tell anyone", "do not contact anyone", "stay connected", "keep your camera on", "kisi ko mat batana", "video call par raho", "किसी को मत बताना", "वीडियो कॉल पर रहो")
+        "call pressure" to listOf("do not disconnect", "stay on the call", "keep the video call on", "do not tell anyone", "do not contact anyone", "stay connected", "keep your camera on", "kisi ko mat batana", "video call par raho", "किसी को मत बताना", "वीडियो कॉल पर रहो"),
+        "video call manipulation" to listOf("turn your camera on", "do not turn off your camera", "stay in front of the camera", "show your face on camera", "show your id on camera", "show your identity card", "show your aadhaar on camera", "share your screen for verification", "show the warrant on screen", "video call verification", "do not leave the video call", "कैमरा चालू रखो", "कैमरा बंद मत करो", "स्क्रीन शेयर करो", "वीडियो कॉल मत काटो")
     )
-    private val weights = listOf(.20, .20, .10, .15, .15, .10, .10)
+    private val weights = listOf(.20, .20, .10, .15, .15, .10, .10, .10)
 
-    fun analyze(text: String): Detection {
+    fun analyze(text: String, callType: String? = null): Detection {
         val normalized = text.lowercase().replace(Regex("\\s+"), " ")
         val found = rules.keys.zip(rules.values).mapNotNull { (label, phrases) ->
+            if (label == "video call manipulation" && callType !in setOf("video", "both")) return@mapNotNull null
             if (phrases.any(normalized::contains)) label else null
         }
         val score = found.sumOf { label -> weights[rules.keys.indexOf(label)] }.coerceAtMost(1.0)

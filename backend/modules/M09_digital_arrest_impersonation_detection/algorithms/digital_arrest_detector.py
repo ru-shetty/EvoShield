@@ -144,10 +144,31 @@ INDICATOR_WEIGHTS = {
     "otp_pin_aadhaar_pan_request": 0.15,
     "fake_document_indicators": 0.10,
     "continuous_call_pressure": 0.10,
+    "video_call_manipulation": 0.10,
 }
 
+VIDEO_CALL_INDICATOR_PATTERNS = [
+    "turn your camera on",
+    "keep your camera on",
+    "do not turn off your camera",
+    "stay in front of the camera",
+    "show your face on camera",
+    "show your id on camera",
+    "show your identity card",
+    "show your aadhaar on camera",
+    "share your screen for verification",
+    "show the warrant on screen",
+    "video call verification",
+    "do not leave the video call",
+    "वीडियो कॉल मत काटो",
+    "कैमरा चालू रखो",
+    "कैमरा बंद मत करो",
+    "स्क्रीन शेयर करो",
+    "वीडियो कॉल पर रहो",
+]
 
-def detect_digital_arrest(text: str) -> dict:
+
+def detect_digital_arrest(text: str, call_type: str | None = None) -> dict:
     """
     Analyze text for digital-arrest and impersonation indicators.
 
@@ -155,6 +176,9 @@ def detect_digital_arrest(text: str) -> dict:
     ----------
     text : str
         Text, OCR output, or speech transcript.
+    call_type : str | None
+        Optional call context. Video-specific coercion cues are enabled for
+        video calls; existing callers can omit this argument.
 
     Returns
     -------
@@ -180,6 +204,15 @@ def detect_digital_arrest(text: str) -> dict:
 
         if matches:
             detected_indicators[indicator_type] = matches
+
+    normalized_call_type = str(call_type or "").strip().lower()
+    if normalized_call_type in {"video", "both"}:
+        video_matches = [
+            pattern for pattern in VIDEO_CALL_INDICATOR_PATTERNS
+            if pattern in normalized_text
+        ]
+        if video_matches:
+            detected_indicators["video_call_manipulation"] = video_matches
 
     # Calculate weighted probability.
     probability = sum(
@@ -208,6 +241,7 @@ def detect_digital_arrest(text: str) -> dict:
         "indicators": detected_indicators,
         "confidence": round(confidence, 2),
         "category": category,
+        "call_type": normalized_call_type or None,
     }
     
 if __name__ == "__main__":

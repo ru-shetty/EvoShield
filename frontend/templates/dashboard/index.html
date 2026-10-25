@@ -5,51 +5,139 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EvoShield Security</title>
   <style>
-    :root{color-scheme:dark;--bg:#0a1020;--panel:#111b30;--line:#263752;--muted:#9aaac2;--cyan:#60d5cf;--white:#f3f7ff;--red:#ff777f;--amber:#f6c66c}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -20%,#183955 0,transparent 50%),var(--bg);font:15px/1.5 Segoe UI,Arial,sans-serif;color:var(--white)}
-    header{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 max(calc((100vw - 1160px)/2),24px)}.brand{font-weight:750;font-size:20px}.brand i{color:var(--cyan);font-style:normal}.state,.sub{color:var(--muted)}.state{font-size:13px}.state b{display:inline-block;background:#42d69a;width:8px;height:8px;border-radius:100%;margin-right:9px}
-    main{max-width:1160px;margin:40px auto;padding:0 24px}.heading{margin-bottom:28px}.eyebrow{color:var(--cyan);text-transform:uppercase;letter-spacing:2px;font-size:11px;font-weight:700}h1{font-size:34px;margin:6px 0}h2{font-size:16px;margin:0 0 18px}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
-    .card{background:linear-gradient(145deg,#142139,#10192a);border:1px solid var(--line);border-radius:16px;padding:23px;box-shadow:0 14px 38px #050a14aa}.tabs{display:flex;gap:8px;margin-bottom:14px}.tab{border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 14px;border-radius:9px;cursor:pointer}.tab.active{background:#193646;border-color:#2b827f;color:var(--cyan)}
-    textarea,input{width:100%;border:1px solid var(--line);border-radius:10px;background:#0b1424;color:var(--white);padding:13px;font:inherit}textarea{height:158px;resize:vertical}.row{margin-top:12px}.btn{border:0;background:var(--cyan);color:#072126;padding:11px 18px;border-radius:9px;font-weight:750;cursor:pointer}.btn:disabled{opacity:.6}.hint,footer{color:var(--muted);font-size:12px;margin-top:12px}
-    .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{border:1px solid var(--line);border-radius:12px;padding:16px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:26px;margin-top:5px}.feed{margin-top:18px}.feedhead{display:flex;justify-content:space-between}.feedhead h2{margin:0}.refresh{background:none;color:var(--cyan);border:0;cursor:pointer}
-    .scanrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding:13px 2px}.scanrow small{display:block;color:var(--muted);font-size:12px}.pill{font-size:11px;font-weight:750;padding:5px 9px;border-radius:20px;background:#203448;color:var(--cyan)}.pill.HIGH{background:#48232c;color:var(--red)}.pill.MEDIUM,.pill.REVIEW{background:#493b22;color:var(--amber)}.history-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:12px}.history-controls button{background:#193646;color:var(--cyan);border:1px solid #2b827f;padding:7px 12px;border-radius:8px;cursor:pointer}.history-controls button:disabled{opacity:.4;cursor:default}
+    :root{color-scheme:dark;--bg:#0b1220;--panel:#111c2e;--line:#24344b;--muted:#92a3bb;--cyan:#64d8c8;--white:#f3f7fb;--red:#ff7d86;--amber:#f5c66d}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -20%,#183955 0,transparent 50%),var(--bg);font:15px/1.5 Inter,Segoe UI,Arial,sans-serif;color:var(--white)}
+    .app{min-height:100vh;display:grid;grid-template-columns:250px minmax(0,1fr)}.sidebar{position:sticky;top:0;height:100vh;background:#0d1727;border-right:1px solid var(--line);padding:26px 16px;display:flex;flex-direction:column}.brand{font-weight:780;font-size:21px;padding:0 12px 28px}.brand i{color:var(--cyan);font-style:normal}.nav-label{color:#72839b;text-transform:uppercase;font-size:10px;letter-spacing:1.5px;padding:12px}.nav-link{width:100%;text-align:left;background:transparent;border:0;color:#a8b7cb;padding:11px 12px;border-radius:9px;font:inherit;cursor:pointer;margin:2px 0}.nav-link:hover,.nav-link.active{background:#17283a;color:var(--cyan)}.nav-link .icon{display:inline-block;width:25px;color:inherit}.nav-link .unavailable{font-size:10px;color:#8294ad}.sidebar-foot{margin-top:auto;padding:13px;color:#7e90a8;font-size:12px;border-top:1px solid var(--line)}
+    .workspace{min-width:0}header{height:70px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 32px;background:#081321e8}.state,.sub{color:var(--muted)}.state{font-size:13px;white-space:nowrap}.state b{display:inline-block;background:#42d69a;width:8px;height:8px;border-radius:100%;margin-right:9px}.top-search{width:min(520px,55vw);position:relative}.top-search:before{content:'⌕';position:absolute;left:13px;top:7px;color:#8294ad;font-size:23px}.top-search input{padding:10px 14px 10px 42px;background:#101d2c;border-color:#203148;border-radius:10px}.profile{display:flex;align-items:center;gap:10px;color:#dce6f3;font-size:13px;white-space:nowrap}.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#092126;background:#d8e4fb;font-weight:800}
+    main{max-width:1480px;margin:24px auto;padding:0 30px}.heading{margin-bottom:20px}.eyebrow{color:var(--cyan);text-transform:uppercase;letter-spacing:2px;font-size:11px;font-weight:700}h1{font-size:32px;letter-spacing:-.6px;margin:6px 0}h2{font-size:16px;margin:0 0 18px}.grid{display:grid;grid-template-columns:.85fr 1.35fr;gap:18px}
+    .card{background:linear-gradient(145deg,#101d2d,#0d1827);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 12px 32px #050a1466}.tabs{display:flex;gap:8px;margin-bottom:14px}.tab{border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 14px;border-radius:9px;cursor:pointer}.tab.active{background:#193646;border-color:#2b827f;color:var(--cyan)}
+    textarea,input,select{width:100%;border:1px solid var(--line);border-radius:10px;background:#0b1424;color:var(--white);padding:13px;font:inherit}textarea{height:158px;resize:vertical}.row{margin-top:12px}.btn{border:0;background:var(--cyan);color:#072126;padding:11px 18px;border-radius:9px;font-weight:750;cursor:pointer}.btn:disabled{opacity:.6}.hint,footer{color:var(--muted);font-size:12px;margin-top:12px}
+    .statgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:16px}.stat{border:1px solid var(--line);border-radius:12px;padding:15px;background:linear-gradient(145deg,#101d2d,#0d1827)}.stat small{color:var(--muted)}.stat strong{display:block;font-size:26px;margin-top:5px}.feed{margin-top:0}.feedhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.feedhead h2{margin:0}.refresh{background:none;color:var(--cyan);border:0;cursor:pointer}.hero{min-height:170px;border:1px solid #1b4460;border-radius:16px;padding:26px 30px;margin-bottom:18px;overflow:hidden;position:relative;background:radial-gradient(ellipse at 79% 42%,#07577c77,transparent 36%),linear-gradient(105deg,#0f2033,#071524 68%,#071a2c)}.hero h1{font-size:34px}.hero p{margin:6px 0;color:#b5c6dc}.hero-art{position:absolute;right:8%;top:50%;transform:translateY(-50%);font-size:86px;color:#3cced2;text-shadow:0 0 26px #168bdb;opacity:.75}.hero-actions{display:flex;gap:10px;margin-top:18px}.hero-actions button{border:1px solid #2a8290;background:#12364c;color:var(--cyan);border-radius:8px;padding:8px 12px;cursor:pointer}.scanbox{min-height:235px;border:1px dashed #426486;border-radius:12px;background:#0a1726;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px}.scanbox.drag{border-color:var(--cyan);background:#0c2430}.scanbox-icon{font-size:43px;color:#5595ff}.scanbox label{margin-top:10px;color:#dce7f4;font-weight:650}.scanbox input[type=file]{max-width:100%;margin-top:12px}.bottom-grid{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:14px;margin-top:16px}.mini-card{min-height:178px}.risk-bar{display:flex;align-items:center;gap:8px;margin:12px 0;font-size:12px;color:#bac8da}.risk-bar i{height:8px;border-radius:8px;display:block;background:var(--cyan)}.trend{display:flex;align-items:end;gap:8px;height:95px;padding:12px 5px 0;border-bottom:1px solid var(--line)}.trend span{flex:1;min-width:8px;border-radius:5px 5px 0 0;background:linear-gradient(#41d9b4,#147ba5);position:relative}.trend span small{position:absolute;bottom:-21px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--muted)}.scanrow{border-top:1px solid var(--line);padding:12px 2px}
+    .scanrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding:15px 2px}.scanrow small{display:block;color:var(--muted);font-size:12px}.day-label{padding:16px 0 6px;color:#8294ad;font-size:11px;text-transform:uppercase;letter-spacing:1.2px}.pill{font-size:11px;font-weight:750;padding:5px 9px;border-radius:20px;background:#203448;color:var(--cyan);white-space:nowrap}.pill.HIGH{background:#48232c;color:var(--red)}.pill.MEDIUM,.pill.REVIEW{background:#493b22;color:var(--amber)}.history-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:12px}.history-controls button{background:#193646;color:var(--cyan);border:1px solid #2b827f;padding:7px 12px;border-radius:8px;cursor:pointer}.history-controls button:disabled{opacity:.4;cursor:default}
     .result{display:none;margin-top:15px;border:1px solid var(--line);border-radius:12px;padding:16px}.result.high{border-color:#75404a}.result.medium,.result.review{border-color:#715b32}.result-title{display:block;font-size:17px;margin-bottom:8px}.result p{margin:7px 0;color:#d7e0ef}.result h3{font-size:13px;margin:14px 0 5px}.result ul{margin:5px 0;padding-left:22px;color:#bbcada}.result li{margin:4px 0}.result .action{margin-top:12px;color:var(--cyan)}.empty{color:var(--muted);padding:20px 0}
-    @media(max-width:760px){main{margin-top:25px}.grid{grid-template-columns:1fr}h1{font-size:28px}}
+    .call-consent{margin-top:14px;padding:16px;border:1px solid #24585d;border-radius:12px;background:#0b2029}.call-consent strong{display:block;font-size:15px}.call-consent p{margin:8px 0;color:#c0d0df}.call-status{min-height:20px;color:var(--muted);font-size:13px;margin:12px 0}.call-consent.on{border-color:#2b806b}.call-consent.error{border-color:#75404a}.btn.danger{background:#ff9299;color:#2c1015}.csrf-token{display:none}
+    .details-toggle{margin-top:7px;background:transparent;border:1px solid var(--line);color:var(--cyan);border-radius:7px;padding:5px 9px;cursor:pointer}.call-details{margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:9px;background:#0b1424}.call-details p{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}.call-details strong{color:var(--cyan)}
+    @media(max-width:1000px){.app{grid-template-columns:210px minmax(0,1fr)}main{padding:0 20px}.grid{grid-template-columns:1fr}.bottom-grid{grid-template-columns:1fr 1fr}.bottom-grid .mini-card:last-child{grid-column:1/-1}}
+    @media(max-width:640px){.app{display:block}.sidebar{height:auto;position:relative;padding:12px;display:block;border-right:0;border-bottom:1px solid var(--line)}.brand{padding:2px 8px 10px}.nav-label,.sidebar-foot{display:none}.nav-group{display:flex;overflow:auto;gap:5px}.nav-link{white-space:nowrap;width:auto;padding:8px 10px}header{height:56px;padding:0 14px}.top-search{width:100%}.profile{display:none}main{margin:18px auto;padding:0 14px}h1,.hero h1{font-size:27px}.hero{padding:20px}.hero-art{right:5%;font-size:54px;opacity:.4}.statgrid{grid-template-columns:1fr 1fr}.bottom-grid{grid-template-columns:1fr}.bottom-grid .mini-card:last-child{grid-column:auto}.card{padding:16px}.feed{overflow:hidden}}
   </style>
 </head>
 <body>
-  <header><div class="brand"><i>◈</i> EvoShield</div><div class="state"><b></b>Protection service ready</div></header>
+ <div class="app">
+  <aside class="sidebar">
+   <div class="brand"><i>◈</i> EvoShield</div>
+   <div class="nav-label">Workspace</div><div class="nav-group">
+    <button class="nav-link active" data-view="today"><span class="icon">⌂</span>Today</button>
+    <button class="nav-link" data-view="history"><span class="icon">◷</span>History</button>
+   </div>
+   <div class="nav-label">Check an input</div><div class="nav-group">
+    <button class="nav-link" data-kind="text"><span class="icon">▤</span>Messages</button>
+    <button class="nav-link" data-kind="url"><span class="icon">↗</span>Website links</button>
+    <button class="nav-link" data-kind="file"><span class="icon">▣</span>Files</button>
+    <button class="nav-link" data-kind="call"><span class="icon">◉</span>Calls</button>
+    <button class="nav-link" data-kind="image"><span class="icon">▧</span>Images</button>
+   </div>
+   <div class="sidebar-foot">Image scans read visible text. New images in watched Windows folders are checked automatically.</div>
+  </aside>
+  <div class="workspace"><header><div class="top-search"><input id="search" type="search" placeholder="Search files, scans, or threats…" aria-label="Search scan history"></div><div class="profile"><span>♧</span><span class="avatar">ES</span><span>EvoShield User</span></div></header>
   <main>
-    <div class="heading"><div class="eyebrow">Personal security console</div><h1>Threat monitoring</h1><div class="sub">Check suspicious messages, links, and files. Review every result below.</div></div>
-    <div class="grid">
-      <section class="card">
-        <h2>Run a security check</h2>
-        <div class="tabs"><button class="tab active" data-kind="text">Message</button><button class="tab" data-kind="url">Website link</button><button class="tab" data-kind="file">File</button></div>
-        <div id="textInput"><textarea id="content" placeholder="Paste a suspicious SMS, email, or call transcript…"></textarea></div>
-        <div id="urlInput" hidden><input id="url" placeholder="https://example.com"></div>
-        <div id="fileInput" hidden><input id="file" type="file"></div>
-        <div class="row"><button id="scan" class="btn">Analyze safely</button></div>
-        <div class="hint">Files are inspected statically and never executed. Scan results are saved in local history.</div>
-        <div id="result" class="result" aria-live="polite"></div>
-      </section>
-      <aside class="card"><h2>Activity overview</h2><div class="statgrid"><div class="stat"><small>Total checks</small><strong id="total">—</strong></div><div class="stat"><small>High risk</small><strong id="high">—</strong></div><div class="stat"><small>Message checks</small><strong id="messages">—</strong></div><div class="stat"><small>Service</small><strong style="font-size:18px;color:var(--cyan)">Active</strong></div></div><footer>Windows automatically checks files in configured folders (up to 20 MB) using limited static checks. URLs and messages are checked only when submitted; app/browser monitoring is not connected yet.</footer></aside>
+    <form class="csrf-token">{% csrf_token %}</form>
+    <section class="hero"><div class="eyebrow">PERSONAL SECURITY CONSOLE</div><h1 id="page-title">Welcome to EvoShield</h1><p>Threat monitoring for a safer digital world</p><p id="page-subtitle">Analyze files, images, links, and messages with the checks available in this project.</p><div class="hero-actions"><button data-kind="file">Scan a file</button><button data-kind="url">Check a link</button><button data-kind="text">Analyze text</button></div><div class="hero-art" aria-hidden="true">⬡</div></section>
+    <div class="statgrid">
+      <div class="stat"><small>Checks saved</small><strong id="stats-total">—</strong></div>
+      <div class="stat"><small>Lower risk</small><strong id="stats-low">—</strong></div>
+      <div class="stat"><small>Needs review</small><strong id="stats-review">—</strong></div>
+      <div class="stat"><small>High risk</small><strong id="stats-high">—</strong></div>
     </div>
-    <section class="card feed"><div class="feedhead"><h2>All checked items</h2><button class="refresh" id="refresh">Refresh</button></div><div id="items"><div class="empty">Loading scan history…</div></div><div class="history-controls"><button id="previous" disabled>Previous</button><span id="history-page" class="sub">Loading…</span><button id="next" disabled>Next</button></div></section>
+    <section class="grid" id="scan-area"><section class="card"><div class="feedhead"><h2 id="check-title">Scan a file for malware</h2></div><div id="textInput" hidden><textarea id="content" placeholder="Paste a suspicious SMS, email, or call transcript…"></textarea></div><div id="urlInput" hidden><input id="url" placeholder="https://example.com"></div><div id="fileInput"><div id="dropzone" class="scanbox"><div class="scanbox-icon">⇧</div><label for="file">Choose a file to inspect</label><div class="hint">Static checks only · Up to 20 MB · Files are never executed</div><input id="file" type="file"></div></div><div id="imageInput" hidden class="hint">Select an image to scan its visible text.</div><div id="callInput" hidden><div class="call-consent" id="call-consent"><strong>Choose call type and allow monitoring</strong><p>Select Voice, Video, or Both. Both applies the standard call checks plus video-call coercion cues. EvoShield checks audio speech only; it does not inspect video frames. Windows monitoring listens to audio from the default playback device while enabled, including other sounds played there.</p><p>Audio is processed in memory and is not saved as a recording. Suspicious transcript excerpts and the selected call type are saved with alerts.</p><label for="windows-call-type">Call type</label><select id="windows-call-type"><option value="voice">Voice call</option><option value="video">Video call</option><option value="both">Both voice and video calls</option></select><div class="row"><button id="call-toggle" class="btn" type="button">Allow and start monitoring</button></div><div id="call-status" class="call-status" role="status" aria-live="polite">Checking monitor status…</div></div></div><div class="row" id="scan-actions"><button id="scan" class="btn">Upload &amp; scan</button></div><div class="hint" id="scan-hint">Results are added to local scan history.</div><div id="result" class="result" aria-live="polite"></div></section>
+      <section class="card feed"><div class="feedhead"><h2 id="list-title">Recent scan results</h2><button class="refresh" id="refresh">View All →</button></div><div id="items"><div class="empty">Loading scan history…</div></div><div class="history-controls"><button id="previous" disabled>Previous</button><span id="history-page" class="sub">Loading…</span><button id="next" disabled>Next</button></div></section></section>
+    <section class="bottom-grid"><div class="card mini-card"><h2>Risk distribution</h2><div id="risk-bars"></div></div><div class="card mini-card"><h2>Scan trend · last 7 days</h2><div id="trend" class="trend"></div><div class="sub" style="margin-top:25px;font-size:11px">Based on saved scan history</div></div><div class="card mini-card"><h2>Supported checks</h2><div class="sub">Messages and call transcripts · Website URLs · Static file checks · Windows live call alerts</div><p class="hint">Images: visible text OCR · live malware reputation is not connected.</p></div></section>
     <footer>Risk indicators are not a guarantee that a file or message is safe. Keep your operating system protection enabled.</footer>
-  </main>
+  </main></div></div>
   <script>
-    let kind = 'text';
-    document.querySelectorAll('.tab').forEach(tab => tab.onclick = () => {
-      document.querySelectorAll('.tab').forEach(item => item.classList.remove('active'));
-      tab.classList.add('active');
-      kind = tab.dataset.kind;
-      for (const inputKind of ['text', 'url', 'file']) {
-        document.querySelector(`#${inputKind}Input`).hidden = kind !== inputKind;
-      }
+    let kind = 'file';
+    let activeView = 'today';
+    let activeFilter = 'all';
+    function selectView(view) {
+      activeView = view;
+      document.querySelectorAll('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === view));
+      document.querySelector('#scan-area').hidden = view === 'history';
+      document.querySelector('#page-title').textContent = view === 'today' ? 'Today' : 'History';
+      document.querySelector('#page-subtitle').textContent = view === 'today' ? 'Your checks from today, grouped by time.' : 'Browse saved checks by input type.';
+      document.querySelector('#list-title').textContent = view === 'today' ? 'Recent checks today' : `${filterName(activeFilter)} history`;
+      historyOffset = 0;
+      refresh();
+    }
+    function filterName(value) { return ({all:'All checked items',text:'Messages',url:'Website links',file:'Files',image:'Images',call:'Calls'})[value] || 'History'; }
+    document.querySelectorAll('[data-view]').forEach(button => button.onclick = () => selectView(button.dataset.view));
+    document.querySelectorAll('[data-kind]').forEach(button => button.onclick = () => {
+      kind = button.dataset.kind;
+      document.querySelector('#scan-area').hidden = false;
+      document.querySelector('#check-title').textContent = `${filterName(kind)} check`;
+      document.querySelector('#page-title').textContent = filterName(kind);
+      document.querySelector('#page-subtitle').textContent = kind === 'call' ? 'Turn on monitoring when you are ready to check call audio.' : kind === 'image' ? 'EvoShield reads text in selected images and checks it for scam and phishing warnings.' : `Submit a ${filterName(kind).toLowerCase().replace(/s$/, '')} for analysis.`;
+      for (const inputKind of ['text', 'url', 'image']) document.querySelector(`#${inputKind}Input`).hidden = true;
+      document.querySelector('#fileInput').hidden = !['file', 'image'].includes(kind);
+      document.querySelector('#file').accept = kind === 'image' ? 'image/*' : '';
+      document.querySelector('#dropzone label').textContent = kind === 'image' ? 'Choose an image to inspect' : 'Choose a file to inspect';
+      document.querySelector('#dropzone .hint').textContent = kind === 'image' ? 'OCR checks visible text · PNG, JPEG, WEBP, BMP, TIFF, GIF · Up to 20 MB' : 'Static checks only · Up to 20 MB · Files are never executed';
+      document.querySelector('#callInput').hidden = kind !== 'call';
+      document.querySelector('#scan').hidden = kind === 'call';
+      document.querySelector('#scan-actions').hidden = kind === 'call';
+      document.querySelector('#scan-hint').hidden = kind === 'call';
+      document.querySelector('#result').style.display = 'none';
+      document.querySelector('#items').innerHTML = kind === 'call' ? '<div class="empty">Call checks appear here after Windows live-call monitoring submits a suspicious transcript. Android call history stays on the phone.</div>' : '';
+      document.querySelector('#list-title').textContent = kind === 'call' ? 'Saved call alerts' : `Recent ${filterName(kind).toLowerCase()}`;
+      activeView = 'category'; activeFilter = kind; historyOffset = 0;
+      document.querySelectorAll('[data-view]').forEach(item => item.classList.remove('active'));
+      document.querySelectorAll('[data-kind]').forEach(item => item.classList.toggle('active', item.dataset.kind === kind));
+      refresh();
+      if (kind === 'call') updateCallMonitorStatus();
     });
 
+    async function updateCallMonitorStatus() {
+      const statusEl = document.querySelector('#call-status');
+      const button = document.querySelector('#call-toggle');
+      if (!statusEl || !button) return;
+      try {
+        const response = await fetch('/api/v1/call-monitor/');
+        const data = await response.json();
+        if (!response.ok) throw Error(data.message || 'Could not read call monitor status.');
+        statusEl.textContent = data.message;
+        const running = data.status === 'running' || data.status === 'starting';
+        button.textContent = running ? 'Stop call monitoring' : 'Allow and start monitoring';
+        document.querySelector('#windows-call-type').disabled = running;
+        button.classList.toggle('danger', running);
+        document.querySelector('#call-consent').classList.toggle('on', running);
+        document.querySelector('#call-consent').classList.toggle('error', data.status === 'error');
+      } catch (error) {
+        statusEl.textContent = error.message;
+        document.querySelector('#call-consent').classList.add('error');
+      }
+    }
+    document.querySelector('#call-toggle').onclick = async () => {
+      const button = document.querySelector('#call-toggle');
+      const statusEl = document.querySelector('#call-status');
+      const starting = button.textContent.toLowerCase().includes('allow');
+      button.disabled = true;
+      statusEl.textContent = starting ? 'Starting local call speech analysis…' : 'Stopping call monitoring…';
+      try {
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const response = await fetch(starting ? '/api/v1/call-monitor/start/' : '/api/v1/call-monitor/stop/', {
+          method:'POST', headers:{'X-CSRFToken':csrf, 'Content-Type':'application/json'},
+          body: starting ? JSON.stringify({call_type:document.querySelector('#windows-call-type').value}) : '{}'
+        });
+        const data = await response.json();
+        if (!response.ok) throw Error(data.message || 'Could not change call monitoring.');
+        await updateCallMonitorStatus();
+      } catch (error) {
+        statusEl.textContent = error.message;
+        document.querySelector('#call-consent').classList.add('error');
+      } finally { button.disabled = false; }
+    };
+    setInterval(() => { if (kind === 'call') updateCallMonitorStatus(); }, 3000);
+
     const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    const typeNames = {text:'Message or call transcript', url:'Website link', file:'File'};
+    const typeNames = {text:'Message or call transcript', url:'Website link', file:'File', image:'Image text scan'};
     const riskNames = {HIGH:'High risk', MEDIUM:'Suspicious', REVIEW:'Needs review', LOW:'Lower risk'};
     const textIndicatorReasons = {
       government_or_police_impersonation: 'The sender claims to represent police or another government authority.',
@@ -58,7 +146,8 @@
       financial_request: 'The sender asks you to pay or transfer money.',
       otp_pin_aadhaar_pan_request: 'The sender asks for an OTP, PIN, identity number, or banking details.',
       fake_document_indicators: 'The sender refers to an official-looking notice or warrant.',
-      call_pressure: 'The sender pressures you to stay on a call or keep the matter secret.'
+      call_pressure: 'The sender pressures you to stay on a call or keep the matter secret.',
+      video_call_manipulation: 'The caller pressures you to keep your camera on, show identity documents, or share your screen.'
     };
     const urlReasons = {
       brand_lookalike: feature => `The address appears to imitate ${feature || 'a familiar brand'} using a different website domain.`,
@@ -74,12 +163,36 @@
       punycode_host: () => 'The website name uses encoded characters that can make look-alike letters harder to notice.'
     };
     const friendly = value => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase());
+    const formatTimestamp = value => {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Time unavailable';
+      return new Intl.DateTimeFormat('en-IN', {
+        timeZone:'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric',
+        hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true
+      }).format(date) + ' IST';
+    };
 
     function describeResult(scanType, details, verdict) {
       const reasons = [];
       let message = '';
       let action = 'If you are unsure, verify through a trusted app or by typing the official website address yourself.';
-      if (scanType === 'url') {
+      if (scanType === 'image') {
+        const image = details.image_ocr_analysis || {};
+        for (const indicator of image.indicators || []) reasons.push(`Image warning sign: ${friendly(indicator)}.`);
+        for (const indicator of image.text_indicators || []) reasons.push(`Text warning sign: ${friendly(indicator)}.`);
+        if (image.digital_arrest_category === 'DIGITAL_ARREST') reasons.push('Possible digital-arrest scam wording was found.');
+        if (verdict === 'HIGH') {
+          message = 'This image contains strong warning signs of a scam or phishing attempt.';
+          action = 'Do not follow its instructions, scan its QR code, open its links, or share passwords, codes, or payment details.';
+        } else if (verdict === 'MEDIUM' || verdict === 'REVIEW') {
+          message = 'Text in this image looks suspicious. Verify it independently before acting.';
+          action = 'Do not use contact details or links printed in the image to verify its claims.';
+        } else {
+          message = image.characters_read ? 'No strong scam warning signs were found in the readable image text.' : 'No readable text was found in this image.';
+          action = 'Image text checks cannot prove that an image or its links are safe.';
+        }
+        if (!reasons.length) reasons.push(image.characters_read ? 'The OCR text checks found no specific warning sign.' : 'OCR did not extract readable text.');
+      } else if (scanType === 'url') {
         const result = details.url_analysis || {};
         for (const indicator of result.indicators || []) {
           if (urlReasons[indicator]) reasons.push(urlReasons[indicator](result.features?.brand_lookalike));
@@ -140,17 +253,50 @@
     const historyLimit = 25;
     async function refresh() {
       try {
-        const response = await fetch(`/api/v1/scans/?limit=${historyLimit}&offset=${historyOffset}`);
+        const query = new URLSearchParams({limit:String(historyLimit), offset:String(historyOffset)});
+        if (activeView === 'today') query.set('day', 'today');
+        else if (activeView === 'history') query.set('kind', activeFilter);
+        else if (activeView === 'category') query.set('kind', activeFilter);
+        const response = await fetch(`/api/v1/scans/?${query}`);
         if (!response.ok) throw Error('History request failed');
         const data = await response.json();
-        document.querySelector('#total').textContent = data.total;
-        document.querySelector('#high').textContent = data.high_total;
-        document.querySelector('#messages').textContent = data.message_total;
-        document.querySelector('#items').innerHTML = data.scans.length ? data.scans.map(scan => {
+        document.querySelector('#stats-total').textContent = data.stats.total;
+        document.querySelector('#stats-low').textContent = data.stats.low;
+        document.querySelector('#stats-review').textContent = data.stats.review;
+        document.querySelector('#stats-high').textContent = data.stats.high;
+        const totalForRisk = Math.max(1, data.stats.total);
+        document.querySelector('#risk-bars').innerHTML = [
+          ['Lower risk', data.stats.low, '#42d6a0'],
+          ['Needs review', data.stats.review, '#f5c66d'],
+          ['High risk', data.stats.high, '#ff6f78']
+        ].map(([name, value, color]) => `<div class="risk-bar"><span style="width:82px">${name}</span><i style="width:${Math.max(2, Math.round(150 * value / totalForRisk))}px;background:${color}"></i><b>${value}</b></div>`).join('');
+        const trendMax = Math.max(1, ...data.trend.map(item => item.count));
+        document.querySelector('#trend').innerHTML = data.trend.map(item => `<span style="height:${Math.max(6, Math.round(78 * item.count / trendMax))}px" title="${esc(item.day)}: ${item.count} checks"><small>${esc(item.day.slice(5))}</small></span>`).join('');
+        const renderedRows = [];
+        let priorDay = '';
+        for (const scan of data.scans) {
+          const day = new Intl.DateTimeFormat('en-IN', {timeZone:'Asia/Kolkata', weekday:'long', month:'long', day:'numeric', year:'numeric'}).format(new Date(scan.created_at));
+          if (day !== priorDay) {
+            renderedRows.push(`<div class="day-label">${esc(day)}</div>`);
+            priorDay = day;
+          }
           const summary = describeResult(scan.type, scan.details || {}, scan.verdict);
-          const typeName = typeNames[scan.type] || 'Security check';
-          return `<div class="scanrow"><div>${esc(scan.subject)}<small>${esc(typeName)} · Source: ${esc(scan.source || 'unknown')} · ${esc(summary.message)} · ${new Date(scan.created_at).toLocaleString()}</small></div><span class="pill ${esc(scan.verdict)}">${esc(riskNames[scan.verdict] || 'Checked')}</span></div>`;
-        }).join('') : '<div class="empty">No checks yet. Analyze a message or link to get started.</div>';
+          const call = scan.details?.call_details;
+          const isCall = scan.source === 'windows-live-call' || scan.source === 'android-call' || Boolean(call);
+          const callTypeName = call?.call_type === 'video' ? 'Video call' : call?.call_type === 'both' ? 'Voice and video calls' : call?.call_type === 'voice' ? 'Voice call' : 'Call';
+          const typeName = isCall ? `${callTypeName} alert` : (typeNames[scan.type] || 'Security check');
+          const id = `details-${esc(scan.entity_id)}`;
+          const indicatorList = Array.isArray(call?.indicators) ? call.indicators : Object.keys(call?.indicators || {}).map(friendly);
+          const callMarkup = call ? `<button class="details-toggle" type="button" aria-expanded="false" aria-controls="${id}" data-details="${id}">View call details</button><div class="call-details" id="${id}" hidden><p><strong>Call type:</strong> ${esc(callTypeName)}${callTypeName === 'Call' ? ' (not recorded for this older alert)' : ''}</p><p><strong>Alert detected (IST):</strong> ${esc(formatTimestamp(scan.created_at))}</p><p><strong>Call analysis:</strong> ${esc(call.category === 'DIGITAL_ARREST' ? 'Possible digital-arrest scam' : call.category === 'SUSPICIOUS' ? 'Suspicious call language' : 'No strong digital-arrest signs')}</p><p><strong>Indicators:</strong> ${esc(indicatorList.join(', ') || 'No specific indicators reported')}</p><p><strong>Transcript excerpt:</strong><br>${esc(call.transcript || 'Transcript was not saved for this alert.')}</p></div>` : '';
+          renderedRows.push(`<div class="scanrow"><div>${esc(scan.subject)}<small>${esc(typeName)} · Source: ${esc(scan.source || 'unknown')} · ${esc(summary.message)} · ${esc(formatTimestamp(scan.created_at))}</small>${callMarkup}</div><span class="pill ${esc(scan.verdict)}">${esc(riskNames[scan.verdict] || 'Checked')}</span></div>`);
+        }
+        document.querySelector('#items').innerHTML = renderedRows.length ? renderedRows.join('') : `<div class="empty">${activeView === 'today' ? 'No checks recorded today yet.' : `No ${filterName(activeFilter).toLowerCase()} checks found.`}</div>`;
+        document.querySelectorAll('.details-toggle').forEach(button => button.onclick = () => {
+          const panel = document.getElementById(button.dataset.details);
+          panel.hidden = !panel.hidden;
+          button.setAttribute('aria-expanded', String(!panel.hidden));
+          button.textContent = panel.hidden ? 'View call details' : 'Hide call details';
+        });
         const start = data.total ? historyOffset + 1 : 0;
         const end = Math.min(historyOffset + data.scans.length, data.total);
         document.querySelector('#history-page').textContent = `Showing ${start}–${end} of ${data.total} checked items`;
@@ -162,17 +308,21 @@
       }
     }
 
-    document.querySelector('#refresh').onclick = refresh;
+    document.querySelector('#refresh').onclick = () => selectView('history');
     document.querySelector('#previous').onclick = () => { historyOffset = Math.max(0, historyOffset - historyLimit); refresh(); };
     document.querySelector('#next').onclick = () => { historyOffset += historyLimit; refresh(); };
+    document.querySelector('#search').addEventListener('input', event => {
+      const term = event.target.value.trim().toLocaleLowerCase();
+      document.querySelectorAll('#items .scanrow').forEach(row => { row.hidden = term && !row.textContent.toLocaleLowerCase().includes(term); });
+    });
     setInterval(refresh, 10000);
     document.querySelector('#scan').onclick = async () => {
       const payload = {type: kind, source: 'web'};
       if (kind === 'text') payload.content = document.querySelector('#content').value;
       if (kind === 'url') payload.content = document.querySelector('#url').value;
-      if (kind === 'file') {
+      if (kind === 'file' || kind === 'image') {
         const file = document.querySelector('#file').files[0];
-        if (!file) return alert('Choose a file first');
+        if (!file) return alert(kind === 'image' ? 'Choose an image first' : 'Choose a file first');
         if (file.size > 20 * 1024 * 1024) return alert('Maximum file size is 20 MB');
         payload.subject = file.name;
         payload.content_base64 = await new Promise((resolve, reject) => {

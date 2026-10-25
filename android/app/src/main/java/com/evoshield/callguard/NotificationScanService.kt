@@ -56,6 +56,17 @@ class NotificationScanService : NotificationListenerService() {
             val result = LocalUrlAnalyzer.analyze(link)
             val host = try { URI(if (link.startsWith("http")) link else "https://$link").host ?: "Website link" } catch (_: Exception) { "Website link" }
             LocalEntityHistory.add(this, "Website link", source, host, result.verdict, result.summary)
+            if (result.verdict in setOf("HIGH", "MEDIUM", "REVIEW")) {
+                getSystemService(android.app.NotificationManager::class.java).notify(
+                    "url:$dedupe:$host".hashCode(),
+                    Notification.Builder(this, CallMonitorService.CHANNEL)
+                        .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                        .setContentTitle("Suspicious website link")
+                        .setContentText("$host: ${result.summary}".take(220))
+                        .setAutoCancel(true)
+                        .build()
+                )
+            }
         }
         if (messageVerdict == "HIGH" || messageVerdict == "MEDIUM") {
             val manager = getSystemService(android.app.NotificationManager::class.java)

@@ -21,7 +21,7 @@ def endpoint_ready(url):
 def main():
     parser = argparse.ArgumentParser(description="Run the EvoShield local protection service")
     parser.add_argument("--watch", action="append", required=True)
-    parser.add_argument("--interval", type=int, default=30)
+    parser.add_argument("--interval", type=int, default=10)
     args = parser.parse_args()
     project = Path(__file__).resolve().parents[1]
     python = Path(sys.executable)
@@ -50,7 +50,7 @@ def main():
     agent_command = [str(python), str(project / "scripts" / "evoshield_agent.py")]
     for root in args.watch:
         agent_command.extend(["--watch", root])
-    agent_command.extend(["--interval", str(max(10, args.interval))])
+    agent_command.extend(["--interval", str(max(5, args.interval))])
 
     while not stopping:
         server = children.get("server")

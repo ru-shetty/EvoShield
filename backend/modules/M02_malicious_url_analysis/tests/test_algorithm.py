@@ -59,6 +59,13 @@ class TestMaliciousURLAnalyzer(unittest.TestCase):
         self.assertIn("brand_lookalike", result["indicators"])
         self.assertEqual(result["features"]["brand_lookalike"], "microsoft")
 
+    def test_go0gle_domain_is_high_risk_google_lookalike(self):
+        result = self.analyzer.analyze("https://go0gle.com")
+
+        self.assertEqual(result["risk_level"], "HIGH")
+        self.assertIn("brand_lookalike", result["indicators"])
+        self.assertEqual(result["features"]["brand_lookalike"], "google")
+
     def test_known_brand_login_subdomain_is_not_flagged_by_keyword_alone(self):
         result = self.analyzer.analyze(
             "https://accounts.google.com/signin"

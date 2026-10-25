@@ -28,11 +28,13 @@ def explain_indicators(indicators):
     return " ".join(explanations) or "The call contains language commonly used to pressure or frighten people."
 
 
-def send_alert(endpoint, text):
+def send_alert(endpoint, text, call_type):
+    call_label = {"video": "video", "both": "voice and video", "voice": "voice"}[call_type]
     payload = json.dumps({
         "type": "text",
         "source": "windows-live-call",
-        "subject": "Live call speech warning",
+        "subject": f"Windows {call_label} call warning",
+        "call_type": call_type,
         "content": text,
     }).encode("utf-8")
     request = Request(endpoint, data=payload, headers={"Content-Type": "application/json"})
@@ -52,6 +54,7 @@ def main():
     parser = argparse.ArgumentParser(description="Monitor call speech from the Windows default audio output")
     parser.add_argument("--model", default="base", help="Faster Whisper model: tiny, base, small, medium, or large-v3")
     parser.add_argument("--language", choices=("auto", "en", "hi"), default="auto", help="Speech language: auto, English (en), or Hindi (hi)")
+    parser.add_argument("--call-type", choices=("voice", "video", "both"), default="voice", help="Call type selected in the EvoShield dashboard")
     parser.add_argument("--window-seconds", type=int, default=6)
     parser.add_argument("--endpoint", default="http://127.0.0.1:8000/api/v1/scan/")
     args = parser.parse_args()
@@ -71,12 +74,14 @@ def main():
     print(f"Monitoring output audio device: {speaker.name}")
     print(f"Preparing the local speech model ({args.model}, language: {args.language})...")
     model = WhisperModel(args.model, device="cpu", compute_type="int8")
-    print("Speech model ready. Monitoring is active only while this window is open; press Ctrl+C to stop.")
+    print("Speech model ready. Monitoring is active while enabled in EvoShield; audio is processed in memory.")
     print("Audio stays in memory; only suspicious transcript text is sent to the local EvoShield API.")
     from backend.modules.M09_digital_arrest_impersonation_detection.algorithms.digital_arrest_detector import detect_digital_arrest
 
     context = deque(maxlen=10)
-    last_alert = 0.0
+    alert_active = False
+    normal_since = None
+    last_diagnostic = 0.0
     frames = max(16_000, 16_000 * max(3, args.window_seconds))
     try:
         # SoundCard documents corrupted mono loopback on Windows/WASAPI; capture
@@ -93,19 +98,36 @@ def main():
                 recognized = " ".join(segment.text.strip() for segment in segments if segment.text.strip())
                 if not recognized:
                     continue
-                print(f"Heard: {recognized}", flush=True)
                 context.append(recognized)
                 rolling_text = " ".join(context)
-                result = detect_digital_arrest(rolling_text)
+                result = detect_digital_arrest(rolling_text, call_type=args.call_type)
                 probability = result["digital_arrest_probability"]
-                if probability < 0.30 or time.monotonic() - last_alert < 30:
+                now = time.monotonic()
+                if now - last_diagnostic >= 30:
+                    print(f"CALL_MONITOR_STATE:speech_analyzed risk={probability:.2f} category={result['category']}", flush=True)
+                    last_diagnostic = now
+                if probability < 0.30:
+                    if alert_active:
+                        if normal_since is None:
+                            normal_since = now
+                        elif now - normal_since >= 60:
+                            alert_active = False
+                            normal_since = None
+                            print("CALL_MONITOR_STATE:alert_cleared", flush=True)
                     continue
-                last_alert = time.monotonic()
-                title = "Possible digital-arrest scam" if result["category"] == "DIGITAL_ARREST" else "Suspicious call language"
+                normal_since = None
+                if alert_active:
+                    continue
+                alert_active = True
+                print(f"CALL_MONITOR_STATE:alert_detected risk={probability:.2f} category={result['category']}", flush=True)
+                call_label = {"video": "video call", "both": "voice/video call", "voice": "voice call"}[args.call_type]
+                title = f"Possible digital-arrest scam in {call_label}" if result["category"] == "DIGITAL_ARREST" else f"Suspicious {call_label} language"
                 reasons = explain_indicators(result["indicators"])
                 notify(title, f"{reasons} Do not share one-time codes or transfer money under pressure.")
+                print("CALL_MONITOR_STATE:desktop_notification_requested", flush=True)
                 try:
-                    send_alert(args.endpoint, rolling_text)
+                    send_alert(args.endpoint, rolling_text, args.call_type)
+                    print("CALL_MONITOR_STATE:alert_saved", flush=True)
                 except Exception as error:
                     print(f"Could not save warning to EvoShield history: {error}", flush=True)
     except KeyboardInterrupt:
